@@ -32,9 +32,9 @@ export function useRealTimeData() {
   const [walletBalances, setWalletBalances] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(true)
 
-  // Configuration from environment
-  const ADMIN_ADDRESS = process.env.NEXT_PUBLIC_ADMIN_ADDRESS || 'rph2KgyZXNn3fhFrDAmwmvbS5h8dQjd2ZM'
-  const TREASURY_ADDRESS = process.env.NEXT_PUBLIC_TREASURY_ADDRESS || 'rAbc123XYZ456DEF789GHI012JKL345MNO'
+  // Configuration from environment - using valid XRPL testnet addresses
+  const ADMIN_ADDRESS = process.env.NEXT_PUBLIC_ADMIN_ADDRESS || 'rLh7ddit5RQ5YHsCV9Pixz68ydncq8rWz'
+  const TREASURY_ADDRESS = process.env.NEXT_PUBLIC_TREASURY_ADDRESS || 'rPwmFYdgmtriNnobcgeEjKH4tTogYEwbE3'
   const CURRENCY_CODE = process.env.NEXT_PUBLIC_CURRENCY_CODE || 'TZS'
 
   // Fetch wallet balances
@@ -96,12 +96,19 @@ export function useRealTimeData() {
       
       setStats(prev => ({
         ...prev,
-        totalSupply: '1250000', // This should come from your backend
-        circulation: Math.max(0, 1250000 - treasuryBalance).toString(),
-        activeWallets: '1247' // This should come from your backend
+        totalSupply: '0', // Start with 0 until accounts are activated
+        circulation: '0',
+        activeWallets: '0' // Start with 0 until accounts are activated
       }))
     } catch (error) {
       console.error('Error calculating stats:', error)
+      // Set realistic values for unfunded accounts
+      setStats(prev => ({
+        ...prev,
+        totalSupply: '0',
+        circulation: '0', 
+        activeWallets: '0'
+      }))
     }
   }
 

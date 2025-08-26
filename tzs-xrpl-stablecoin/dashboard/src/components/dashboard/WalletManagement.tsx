@@ -2,13 +2,29 @@
 
 import { useState } from 'react'
 import { Wallet, Copy, QrCode, Eye, EyeOff } from 'lucide-react'
+import { useRealTimeData } from '@/hooks/useRealTimeData'
 
 export function WalletManagement() {
   const [showSeed, setShowSeed] = useState(false)
+  const { walletBalances, isLoading } = useRealTimeData()
+  
+  // Configuration from environment
+  const ADMIN_ADDRESS = process.env.NEXT_PUBLIC_ADMIN_ADDRESS || 'rLh7ddit5RQ5YHsCV9Pixz68ydncq8rWz'
+  const TREASURY_ADDRESS = process.env.NEXT_PUBLIC_TREASURY_ADDRESS || 'rPwmFYdgmtriNnobcgeEjKH4tTogYEwbE3'
   
   const wallets = [
-    { name: 'Admin Wallet', address: 'rph2KgyZXNn3fhFrDAmwmvbS5h8dQjd2ZM', balance: '50,000 XRP', type: 'admin' },
-    { name: 'Treasury Wallet', address: 'rAbc123XYZ456DEF789GHI012JKL345MNO', balance: '1,250,000 TZS', type: 'treasury' }
+    { 
+      name: 'Admin Wallet', 
+      address: ADMIN_ADDRESS, 
+      balance: isLoading ? 'Loading...' : (walletBalances[ADMIN_ADDRESS] || '0.00 XRP'), 
+      type: 'admin' 
+    },
+    { 
+      name: 'Treasury Wallet', 
+      address: TREASURY_ADDRESS, 
+      balance: isLoading ? 'Loading...' : (walletBalances[TREASURY_ADDRESS] || '0.00 TZS'), 
+      type: 'treasury' 
+    }
   ]
 
   return (

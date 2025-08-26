@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
-import { DashboardOverview } from '@/components/dashboard/DashboardOverview'
+import DashboardOverview from '@/components/dashboard/DashboardOverview'
 import { TokenOperations } from '@/components/dashboard/TokenOperations'
 import { WalletManagement } from '@/components/dashboard/WalletManagement'
 import { TransactionMonitor } from '@/components/dashboard/TransactionMonitor'
@@ -39,7 +39,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Sidebar activeTab={activeTab} onTabChange={(tab: string) => setActiveTab(tab as ActiveTab)} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header isConnected={isConnected} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">

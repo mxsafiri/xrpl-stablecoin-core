@@ -66,7 +66,11 @@ class XRPLService {
     try {
       const accountInfo = await this.getAccountInfo(address)
       return parseFloat(accountInfo.result.account_data.Balance) / 1000000 // Convert drops to XRP
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message?.includes('Account not found')) {
+        // Account doesn't exist yet (not funded)
+        return 0
+      }
       console.error('Error fetching XRP balance:', error)
       return 0
     }
