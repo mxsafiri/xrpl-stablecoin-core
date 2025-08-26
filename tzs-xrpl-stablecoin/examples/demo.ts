@@ -8,17 +8,28 @@ dotenv.config();
 // API base URL
 const API_BASE_URL = process.env.API_URL || 'http://localhost:3000/api';
 
-// Example wallets (for demo purposes only)
+// Wallets from environment variables
 const adminWallet = {
-  address: process.env.DEMO_ADMIN_ADDRESS || 'rAdmin123',
-  seed: process.env.DEMO_ADMIN_SEED || 'sAdmin123'
+  address: process.env.XRPL_ISSUER_ADDRESS || 'rph2dj1V9ZoWpSEz8YKgmSm8YpNCQJL8ZM',
+  seed: process.env.XRPL_ADMIN_SEED || 'sEd7uXumpxULakG8gQpm9jX3dmu2H8L'
 };
 
 const treasuryWallet = {
-  address: process.env.DEMO_TREASURY_ADDRESS || 'rTreasury123',
-  seed: process.env.DEMO_TREASURY_SEED || 'sTreasury123'
+  address: '', // Will be derived from seed
+  seed: process.env.XRPL_TREASURY_SEED || 'sEdVgrmgKYtx7NNZNupRJLqyEweRZC9'
 };
 
+// Generate treasury address from seed
+if (treasuryWallet.seed) {
+  try {
+    const wallet = Wallet.fromSeed(treasuryWallet.seed);
+    treasuryWallet.address = wallet.address;
+  } catch (error) {
+    console.error('Error deriving treasury address:', error);
+  }
+}
+
+// Test user wallet (you can generate this from XRP faucet if needed)
 const userWallet = {
   address: process.env.DEMO_USER_ADDRESS || 'rUser123',
   seed: process.env.DEMO_USER_SEED || 'sUser123'
