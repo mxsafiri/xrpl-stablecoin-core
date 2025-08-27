@@ -1,193 +1,214 @@
-# TZS Stablecoin on XRP Ledger
+# TZS Stablecoin - XRPL-based Tanzanian Shilling Stablecoin
 
-A production-ready backend system for a Tanzanian Shilling (TZS) pegged stablecoin on the XRP Ledger (XRPL).
+A Tanzanian Shilling (TZS) pegged stablecoin built on the XRP Ledger (XRPL) with comprehensive backend services and management dashboard.
+
+## Project Structure
+
+```
+tzs-xrpl-stablecoin/
+├── backend/                 # Backend API server
+│   ├── src/                # Source code
+│   │   ├── api/           # API routes and controllers
+│   │   ├── config/        # Configuration files
+│   │   ├── core/          # Core business logic
+│   │   ├── db/            # Database migrations and seeds
+│   │   ├── middleware/    # Express middleware
+│   │   ├── services/      # Business services
+│   │   ├── types/         # TypeScript type definitions
+│   │   └── utils/         # Utility functions
+│   ├── package.json       # Backend dependencies
+│   ├── tsconfig.json      # TypeScript configuration
+│   └── knexfile.ts        # Database configuration
+├── frontend/               # Frontend applications
+│   └── dashboard/         # Management dashboard (Next.js)
+│       ├── src/           # Dashboard source code
+│       ├── package.json   # Frontend dependencies
+│       └── next.config.js # Next.js configuration
+├── package.json           # Workspace configuration
+├── README.md              # This file
+└── .env.example           # Environment variables template
+```
 
 ## Features
 
-- **XRPL-issued TZS stablecoin**: Fully compliant with XRPL token standards
-- **Multisig Security**: XRPL-native multisig support for admin/treasury operations
-- **Role-based Access Control**: Admin, treasury, and user roles
-- **Collateral Tracking**: Reserve ledger to track TZS backing each token
-- **Comprehensive API**: REST endpoints for all stablecoin operations
-- **Audit Logging**: Complete history of all operations
+- **XRPL Integration**: Native token operations on XRP Ledger
+- **Multi-signature Security**: Configurable multi-sig approvals for operations
+- **Collateral Management**: Real-time collateral tracking and management
+- **RESTful API**: Comprehensive API for all token operations
+- **Management Dashboard**: Web-based interface for operations management
+- **Audit Logging**: Complete audit trail for all operations
+- **Role-based Access**: Admin, Treasury, and User role management
+- **Neon PostgreSQL**: Cloud database integration
 
-## Technology Stack
+## Architecture
 
-- **Backend**: Node.js with TypeScript
-- **Database**: PostgreSQL
-- **Blockchain**: XRP Ledger
-- **API**: Express.js
-- **Authentication**: JWT + XRPL signatures
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Dashboard     │    │   Backend API   │    │   XRPL Network  │
+│   (Next.js)     │◄──►│   (Node.js)     │◄──►│   (Testnet)     │
+│  :3001          │    │   :3000         │    └─────────────────┘
+└─────────────────┘    └─────────────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │ Neon PostgreSQL │
+                       │   Database      │
+                       └─────────────────┘
+```
 
-## Prerequisites
+## Quick Start
 
-- Node.js (v14+)
-- PostgreSQL (v12+)
-- XRPL account with funding (for testnet/mainnet)
+### Prerequisites
 
-## Installation
+- Node.js 18+ and npm
+- Neon PostgreSQL database account
+- XRPL testnet account with XRP
+
+### Installation
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/tzs-xrpl-stablecoin.git
-   cd tzs-xrpl-stablecoin
-   ```
+```bash
+git clone https://github.com/mxsafiri/xrpl-stablecoin-core.git
+cd tzs-xrpl-stablecoin
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+2. Install all dependencies:
+```bash
+npm run setup
+```
 
 3. Set up environment variables:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+```bash
+cp .env.example .env
+# Edit .env with your Neon database URL and XRPL credentials
+```
 
-4. Set up the database:
-   ```bash
-   npm run migrate
-   npm run seed
-   ```
+4. Run database migrations:
+```bash
+npm run db:migrate
+npm run db:seed
+```
 
-5. Start the server:
-   ```bash
-   # Development mode
-   npm run dev
-   
-   # Production mode
-   npm run build
-   npm start
-   ```
+5. Start both backend and frontend:
+```bash
+npm run dev
+```
+
+This will start:
+- Backend API server on http://localhost:3000
+- Frontend dashboard on http://localhost:3001
+
+## Development Commands
+
+### Workspace Commands (run from root)
+```bash
+npm run dev              # Start both backend and frontend
+npm run dev:backend      # Start only backend
+npm run dev:frontend     # Start only frontend
+npm run build            # Build both applications
+npm run test             # Run all tests
+npm run setup            # Install all dependencies
+```
+
+### Database Commands
+```bash
+npm run db:migrate       # Run database migrations
+npm run db:seed          # Seed database with initial data
+npm run db:reset         # Reset database
+```
+
+### Individual Application Commands
+
+**Backend** (from `/backend` directory):
+```bash
+npm run dev              # Start development server
+npm run build            # Build for production
+npm run start            # Start production server
+npm test                 # Run tests
+```
+
+**Frontend** (from `/frontend/dashboard` directory):
+```bash
+npm run dev              # Start development server
+npm run build            # Build for production
+npm run start            # Start production server
+npm test                 # Run tests
+```
 
 ## API Endpoints
 
 ### Authentication
-
-- `POST /api/auth/register` - Register a new wallet
-- `POST /api/auth/login` - Login with wallet signature
+- `POST /api/auth/login` - Wallet-based authentication
+- `POST /api/auth/register` - Register new wallet
 
 ### Token Operations
-
-- `POST /api/token/mint` - Mint new tokens (requires multisig approval)
-- `POST /api/token/burn` - Burn tokens (requires multisig approval)
-- `POST /api/token/transfer` - Transfer tokens between wallets
-- `POST /api/token/approve` - Approve a multisig operation
-- `GET /api/token/balance/:wallet` - Get token balance for a wallet
+- `POST /api/token/mint` - Mint new tokens
+- `POST /api/token/burn` - Burn existing tokens
+- `POST /api/token/transfer` - Transfer tokens
+- `GET /api/token/balance/:wallet` - Get wallet balance
 - `GET /api/token/transactions` - Get transaction history
-- `GET /api/token/collateral` - Get collateral balance
+
+### Multi-signature Operations
 - `GET /api/token/pending-operations` - Get pending operations
+- `POST /api/token/approve/:id` - Approve operation
+- `POST /api/token/reject/:id` - Reject operation
 
-## XRPL Setup
+### Collateral Management
+- `GET /api/token/collateral` - Get collateral status
+- `POST /api/token/collateral/add` - Add collateral
+- `POST /api/token/collateral/remove` - Remove collateral
 
-### Creating Issuer Account
+## Configuration
 
-1. Generate a new XRPL wallet for the issuer:
-   ```javascript
-   const wallet = xrpl.Wallet.generate();
-   console.log(wallet.address); // Issuer address
-   console.log(wallet.seed);    // Issuer seed (KEEP SECURE!)
-   ```
+Key environment variables:
 
-2. Fund the wallet on testnet:
-   ```javascript
-   // Using the XRPL Testnet Faucet
-   // https://xrpl.org/xrp-testnet-faucet.html
-   ```
+```env
+# Server
+PORT=3000
+NODE_ENV=development
 
-3. Configure the issuer account in `.env`:
-   ```
-   XRPL_ISSUER_ADDRESS=r...
-   XRPL_ADMIN_SEED=s...
-   ```
+# Neon Database
+DATABASE_URL=postgresql://user:pass@host.neon.tech/db?sslmode=require
 
-### Setting Up Multisig
+# XRPL
+XRPL_SERVER=wss://s.altnet.rippletest.net:51233
+XRPL_ADMIN_SEED=your_admin_seed
+XRPL_TREASURY_SEED=your_treasury_seed
 
-1. Generate signer wallets:
-   ```javascript
-   const signer1 = xrpl.Wallet.generate();
-   const signer2 = xrpl.Wallet.generate();
-   const signer3 = xrpl.Wallet.generate();
-   ```
-
-2. Configure multisig in the admin account:
-   ```javascript
-   // See multisig.service.ts for implementation details
-   ```
-
-## Testing
-
-Run the test suite:
-```bash
-npm test
+# Security
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRY=24h
 ```
 
-Run with coverage:
-```bash
-npm run test:coverage
-```
+## Dashboard Features
 
-## Example Usage
+- **Real-time Operations**: Live multisig operations management
+- **Transaction Monitoring**: Complete transaction history and filtering
+- **Authentication**: JWT-based admin authentication
+- **Responsive Design**: Works on desktop and mobile devices
+- **Error Handling**: Comprehensive error states and loading indicators
 
-### Minting TZS Tokens
+## Security
 
-```javascript
-// Request a mint operation (requires multisig approval)
-const mintRequest = {
-  amount: 1000,
-  destination_wallet: "rDestinationAddress",
-  reference_id: "bank-deposit-123",
-  bank_transaction_id: "bank-tx-456"
-};
-
-// Admin or treasury initiates the request
-await fetch('/api/token/mint', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_JWT_TOKEN'
-  },
-  body: JSON.stringify(mintRequest)
-});
-
-// Required signers approve the operation
-await fetch('/api/token/approve', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_JWT_TOKEN'
-  },
-  body: JSON.stringify({
-    operation_id: "operation-id-from-mint-request",
-    wallet_seed: "sSignerSeed"
-  })
-});
-```
-
-### Transferring TZS Tokens
-
-```javascript
-// Transfer tokens between wallets
-const transferRequest = {
-  amount: 100,
-  destination_wallet: "rDestinationAddress",
-  wallet_seed: "sSourceWalletSeed"
-};
-
-await fetch('/api/token/transfer', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_JWT_TOKEN'
-  },
-  body: JSON.stringify(transferRequest)
-});
-```
-
-## License
-
-MIT
+- Multi-signature requirements for sensitive operations
+- JWT-based authentication with role-based access control
+- Comprehensive audit logging
+- Input validation and sanitization
+- SSL/TLS encryption for database connections
+- Environment-based configuration management
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/new-feature`
+3. Commit changes: `git commit -am 'Add new feature'`
+4. Push to branch: `git push origin feature/new-feature`
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For support and questions, please open an issue on GitHub or contact the development team.
