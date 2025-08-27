@@ -1,7 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Coins, Flame, ArrowRightLeft, Plus } from 'lucide-react'
+import { tokenAPI, authAPI } from '../../lib/api'
+
+interface Transaction {
+  id: string
+  operation_type: string
+  amount: number
+  destination_wallet?: string
+  source_wallet?: string
+  status: string
+  created_at: string
+}
 
 export function TokenOperations() {
   const [activeOperation, setActiveOperation] = useState<'mint' | 'burn' | 'transfer'>('mint')
@@ -11,19 +22,140 @@ export function TokenOperations() {
     sourceWallet: '',
     reference: ''
   })
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if already authenticated
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      setIsAuthenticated(true)
+      fetchRecentTransactions()
+    }
+  }, [])
+
+  const fetchRecentTransactions = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await tokenAPI.getTransactions()
+      setRecentTransactions(data.transactions || [])
+    } catch (err) {
+      setError('Failed to fetch recent transactions')
+      console.error('Error fetching transactions:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleLogin = async () => {
+    try {
+      setLoading(true)
+      await authAPI.loginAsAdmin()
+      setIsAuthenticated(true)
+      setError(null)
+      await fetchRecentTransactions()
+    } catch (err) {
+      setError('Failed to authenticate. Please try again.')
+      console.error('Authentication error:', err)
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log(`${activeOperation} operation:`, formData)
-    // Here you would call your backend API
+    
+    if (!isAuthenticated) {
+      setError('Please login first')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const operationData = {
+        amount: parseFloat(formData.amount),
+        destinationWallet: formData.destinationWallet,
+        sourceWallet: formData.sourceWallet,
+        reference: formData.reference || undefined
+      }
+
+      let result
+      switch (activeOperation) {
+        case 'mint':
+          result = await tokenAPI.mint(formData.amount, formData.destinationWallet, formData.reference)
+          break
+        case 'burn':
+          result = await tokenAPI.burn(formData.amount, formData.sourceWallet, formData.reference)
+          break
+        case 'transfer':
+          result = await tokenAPI.transfer(formData.amount, formData.sourceWallet, formData.destinationWallet)
+          break
+      }
+
+      // Clear form on success
+      setFormData({
+        amount: '',
+        destinationWallet: '',
+        sourceWallet: '',
+        reference: ''
+      })
+
+      // Refresh transactions
+      await fetchRecentTransactions()
+      
+    } catch (err: any) {
+      setError(err.message || `Failed to ${activeOperation} tokens`)
+      console.error(`${activeOperation} error:`, err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatWallet = (wallet?: string) => {
+    return wallet && wallet.length > 10 ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : wallet || 'N/A'
+  }
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} min ago`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Token Operations</h1>
-        <p className="text-gray-600">Mint, burn, and transfer TZS tokens</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Token Operations</h1>
+          <p className="text-gray-600">Mint, burn, and transfer TZS tokens</p>
+        </div>
+        {!isAuthenticated && (
+          <button
+            onClick={handleLogin}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            disabled={loading}
+          >
+            {loading ? 'Authenticating...' : 'Login as Admin'}
+          </button>
+        )}
       </div>
+
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <p className="text-red-700">{error}</p>
+        </div>
+      )}
 
       {/* Operation Tabs */}
       <div className="bg-white rounded-lg shadow">
@@ -159,13 +291,15 @@ export function TokenOperations() {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className={`px-6 py-3 rounded-lg font-medium text-white transition-colors ${
+                disabled={loading || !isAuthenticated}
+                className={`px-6 py-3 rounded-lg font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   activeOperation === 'mint' ? 'bg-green-600 hover:bg-green-700' :
                   activeOperation === 'burn' ? 'bg-red-600 hover:bg-red-700' :
                   'bg-blue-600 hover:bg-blue-700'
                 }`}
               >
-                {activeOperation === 'mint' ? 'Mint Tokens' :
+                {loading ? 'Processing...' :
+                 activeOperation === 'mint' ? 'Mint Tokens' :
                  activeOperation === 'burn' ? 'Burn Tokens' :
                  'Transfer Tokens'}
               </button>
@@ -180,38 +314,52 @@ export function TokenOperations() {
           <h2 className="text-lg font-semibold text-gray-900">Recent Operations</h2>
         </div>
         <div className="p-6">
-          <div className="space-y-4">
-            {[
-              { type: 'Mint', amount: '10,000', wallet: 'rph2...ZM', status: 'Completed', time: '2 min ago' },
-              { type: 'Transfer', amount: '5,000', wallet: 'rAbc...XY', status: 'Pending', time: '5 min ago' },
-              { type: 'Burn', amount: '2,500', wallet: 'rDef...AB', status: 'Completed', time: '12 min ago' }
-            ].map((op, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    op.type === 'Mint' ? 'bg-green-100' :
-                    op.type === 'Burn' ? 'bg-red-100' : 'bg-blue-100'
-                  }`}>
-                    {op.type === 'Mint' ? <Plus className="w-5 h-5 text-green-600" /> :
-                     op.type === 'Burn' ? <Flame className="w-5 h-5 text-red-600" /> :
-                     <ArrowRightLeft className="w-5 h-5 text-blue-600" />}
+          {loading && recentTransactions.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-500">Loading recent transactions...</p>
+            </div>
+          ) : recentTransactions.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {isAuthenticated ? 'No recent transactions found' : 'Please login to view recent transactions'}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentTransactions.slice(0, 5).map((transaction) => {
+                const opType = transaction.operation_type.charAt(0).toUpperCase() + transaction.operation_type.slice(1)
+                const wallet = transaction.destination_wallet || transaction.source_wallet
+                
+                return (
+                  <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        transaction.operation_type === 'mint' ? 'bg-green-100' :
+                        transaction.operation_type === 'burn' ? 'bg-red-100' : 'bg-blue-100'
+                      }`}>
+                        {transaction.operation_type === 'mint' ? <Plus className="w-5 h-5 text-green-600" /> :
+                         transaction.operation_type === 'burn' ? <Flame className="w-5 h-5 text-red-600" /> :
+                         <ArrowRightLeft className="w-5 h-5 text-blue-600" />}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{opType} {transaction.amount.toLocaleString()} TZS</p>
+                        <p className="text-sm text-gray-500 font-mono">{formatWallet(wallet)}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        transaction.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                        transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                      </span>
+                      <p className="text-sm text-gray-500 mt-1">{formatTime(transaction.created_at)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{op.type} {op.amount} TZS</p>
-                    <p className="text-sm text-gray-500 font-mono">{op.wallet}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    op.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {op.status}
-                  </span>
-                  <p className="text-sm text-gray-500 mt-1">{op.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
