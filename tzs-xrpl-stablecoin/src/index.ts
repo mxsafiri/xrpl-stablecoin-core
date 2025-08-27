@@ -1,4 +1,5 @@
-import express from 'express';
+const express = require('express');
+import { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -24,7 +25,7 @@ app.use(morgan('combined')); // Request logging
 app.use('/api', api);
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   logger.error('Unhandled error', err);
   res.status(500).json({ error: 'Internal server error' });
 });

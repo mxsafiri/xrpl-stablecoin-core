@@ -11,12 +11,13 @@ interface KnexConfig {
 const config: KnexConfig = {
   development: {
     client: 'pg',
-    connection: {
+    connection: process.env.DATABASE_URL || {
       host: process.env.DB_HOST || 'localhost',
       port: Number(process.env.DB_PORT) || 5432,
       database: process.env.DB_NAME || 'tzs_stablecoin',
       user: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     },
     migrations: {
       directory: path.join(__dirname, 'src/db/migrations'),
@@ -27,12 +28,13 @@ const config: KnexConfig = {
   },
   test: {
     client: 'pg',
-    connection: {
+    connection: process.env.TEST_DATABASE_URL || {
       host: process.env.DB_HOST || 'localhost',
       port: Number(process.env.DB_PORT) || 5432,
       database: `${process.env.DB_NAME}_test` || 'tzs_stablecoin_test',
       user: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     },
     migrations: {
       directory: path.join(__dirname, 'src/db/migrations'),
@@ -43,7 +45,7 @@ const config: KnexConfig = {
   },
   production: {
     client: 'pg',
-    connection: {
+    connection: process.env.DATABASE_URL || {
       host: process.env.DB_HOST,
       port: Number(process.env.DB_PORT),
       database: process.env.DB_NAME,
