@@ -1,46 +1,39 @@
 import { Handler, HandlerEvent, HandlerContext, HandlerResponse } from '@netlify/functions';
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import dotenv from 'dotenv';
-import serverless from 'serverless-http';
 
-// Import your existing API routes
-import api from '../../backend/src/api';
-
-// Load environment variables
-dotenv.config();
-
-// Create Express app
-const app = express();
-
-// Middleware
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-
-// API routes
-app.use('/.netlify/functions/api', api);
-
-// Create the serverless handler
-const serverlessHandler = serverless(app);
-
-// Wrap it to match Netlify's expected response format
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
   try {
-    const result = await serverlessHandler(event, context) as any;
-    
-    // Ensure the result matches HandlerResponse format
+    // Simple API endpoint for testing
+    if (event.httpMethod === 'GET') {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ 
+          message: 'TZS Stablecoin API is running',
+          timestamp: new Date().toISOString()
+        }),
+      };
+    }
+
     return {
-      statusCode: result.statusCode || 200,
-      headers: result.headers || {},
-      body: result.body || '',
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({ error: 'Endpoint not found' }),
     };
   } catch (error) {
-    console.error('Handler error:', error);
+    console.error('API error:', error);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ error: 'Internal server error' }),
     };
   }

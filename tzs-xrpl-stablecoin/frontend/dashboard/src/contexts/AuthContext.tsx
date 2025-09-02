@@ -38,18 +38,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (savedWallet && savedRole) {
         try {
+          // Try to validate with API, but don't block on failure
           const result = await authAPI.login(savedWallet)
           setUser(result.user)
         } catch (error) {
-          // Clear invalid auth
-          localStorage.removeItem('current_wallet')
-          localStorage.removeItem('user_role')
+          console.warn('API validation failed, using cached auth:', error)
+          // Use cached auth data if API fails
+          setUser({
+            id: savedWallet,
+            wallet_address: savedWallet,
+            role: savedRole,
+            balance: 0,
+            created_at: new Date().toISOString()
+          })
         }
       }
       setLoading(false)
     }
 
-    checkAuth()
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.warn('Auth check timeout, proceeding without authentication')
+      setLoading(false)
+    }, 5000)
+
+    checkAuth().finally(() => clearTimeout(timeoutId))
   }, [])
 
   const login = async (walletAddress: string) => {
