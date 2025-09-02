@@ -32,37 +32,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check for existing authentication on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      const savedWallet = localStorage.getItem('current_wallet')
-      const savedRole = localStorage.getItem('user_role')
-      
-      if (savedWallet && savedRole) {
-        try {
-          // Try to validate with API, but don't block on failure
-          const result = await authAPI.login(savedWallet)
-          setUser(result.user)
-        } catch (error) {
-          console.warn('API validation failed, using cached auth:', error)
-          // Use cached auth data if API fails
-          setUser({
-            id: savedWallet,
-            wallet_address: savedWallet,
-            role: savedRole,
-            balance: 0,
-            created_at: new Date().toISOString()
-          })
-        }
-      }
-      setLoading(false)
+    // Immediately stop loading to show the dashboard
+    setLoading(false)
+    
+    // Optional: Try to restore previous session in background
+    const savedWallet = localStorage.getItem('current_wallet')
+    const savedRole = localStorage.getItem('user_role')
+    
+    if (savedWallet && savedRole) {
+      // Use cached auth data without API validation for now
+      setUser({
+        id: savedWallet,
+        wallet_address: savedWallet,
+        role: savedRole,
+        balance: 0,
+        created_at: new Date().toISOString()
+      })
     }
-
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.warn('Auth check timeout, proceeding without authentication')
-      setLoading(false)
-    }, 5000)
-
-    checkAuth().finally(() => clearTimeout(timeoutId))
   }, [])
 
   const login = async (walletAddress: string) => {
