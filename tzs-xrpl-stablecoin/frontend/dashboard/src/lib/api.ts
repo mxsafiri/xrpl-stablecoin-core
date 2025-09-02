@@ -85,25 +85,46 @@ export const multisigAPI = {
   },
 }
 
-// Authentication API - wallet-based
+// Authentication API
 export const authAPI = {
   login: async (walletAddress: string) => {
-    try {
-      const auth = await authenticateWallet(walletAddress)
-      setCurrentWallet(walletAddress, auth.user.role)
-      return {
-        success: true,
-        user: auth.user,
-        isAdmin: auth.isAdmin
-      }
-    } catch (error) {
-      throw new Error('Wallet not authorized')
+    const response = await fetch('/.netlify/functions/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ walletAddress, action: 'login' })
+    })
+    
+    if (!response.ok) {
+      throw new Error('Login failed')
+    }
+    
+    const data = await response.json()
+    setCurrentWallet(walletAddress, data.user.role)
+    return {
+      success: true,
+      user: data.user,
+      isAdmin: data.isAdmin
     }
   },
-  
-  // Quick admin login for testing
+
   loginAsAdmin: async () => {
-    return await authAPI.login('rfXQiN2AzW82XK6nMcU7DU1zsd4HpuQUoT')
+    const response = await fetch('/.netlify/functions/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'admin-login' })
+    })
+    
+    if (!response.ok) {
+      throw new Error('Admin login failed')
+    }
+    
+    const data = await response.json()
+    setCurrentWallet('rfXQiN2AzW82XK6nMcU7DU1zsd4HpuQUoT', data.user.role)
+    return {
+      success: true,
+      user: data.user,
+      isAdmin: data.isAdmin
+    }
   },
 
   logout: () => {

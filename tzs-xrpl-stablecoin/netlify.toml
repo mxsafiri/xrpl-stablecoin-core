@@ -6,6 +6,7 @@
 [build.environment]
   NODE_VERSION = "18"
   DATABASE_URL = "postgresql://neondb_owner:npg_3EJCNTnzM9PF@ep-green-poetry-a26ov6e8-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+  NEXT_PUBLIC_DATABASE_URL = "postgresql://neondb_owner:npg_3EJCNTnzM9PF@ep-green-poetry-a26ov6e8-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 [[redirects]]
   from = "/api/*"

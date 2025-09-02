@@ -54,7 +54,11 @@ export default function WalletAuth({ onAuthSuccess }: WalletAuthProps) {
       const result = await authAPI.login(wallet.address)
       onAuthSuccess(result.user)
     } catch (err) {
-      setError('Failed to create wallet. Please try again.')
+      console.error('Registration error:', err)
+      // Don't show error if wallet was created successfully
+      if (!newWallet) {
+        setError(`Registration failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      }
     } finally {
       setLoading(false)
     }
@@ -134,6 +138,15 @@ export default function WalletAuth({ onAuthSuccess }: WalletAuthProps) {
             <p className="text-xs text-green-600 mt-2">
               ⚠️ Save your seed phrase securely! You&apos;ll need it to access your wallet.
             </p>
+            <button
+              onClick={async () => {
+                setWalletAddress(newWallet.address)
+                await handleLogin()
+              }}
+              className="w-full mt-3 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+            >
+              Continue to Dashboard
+            </button>
           </div>
         )}
 

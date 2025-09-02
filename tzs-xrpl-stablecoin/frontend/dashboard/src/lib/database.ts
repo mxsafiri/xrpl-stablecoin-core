@@ -20,10 +20,10 @@ export const authenticateWallet = async (walletAddress: string): Promise<{ user:
 export const databaseAPI = {
   // Register new user
   registerUser: async (walletAddress: string, role: string = 'user') => {
-    const response = await fetch(`${API_BASE}/auth/register`, {
+    const response = await fetch(`${API_BASE}/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ walletAddress, role })
+      body: JSON.stringify({ walletAddress, role, action: 'register' })
     })
     
     if (!response.ok) {

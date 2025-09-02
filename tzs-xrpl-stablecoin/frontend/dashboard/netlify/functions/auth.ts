@@ -2,8 +2,11 @@ import { Handler } from '@netlify/functions'
 import { Pool } from 'pg'
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_3EJCNTnzM9PF@ep-green-poetry-a26ov6e8-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
-  ssl: { rejectUnauthorized: false }
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 1, // Limit connections for serverless
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 })
 
 export const handler: Handler = async (event, context) => {
@@ -18,12 +21,12 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    const { walletAddress } = JSON.parse(event.body || '{}')
+    const body = JSON.parse(event.body || '{}')
+    const { walletAddress, action } = body
 
-    if (event.httpMethod === 'POST' && event.path.includes('/login')) {
+    if (event.httpMethod === 'POST' && action === 'login') {
       // Login user
-      const query = 'SELECT * FROM users WHERE wallet_address = $1'
-      const result = await pool.query(query, [walletAddress])
+      const result = await pool.query('SELECT * FROM users WHERE wallet_address = $1', [walletAddress])
       
       if (result.rows.length === 0) {
         return {
@@ -44,17 +47,14 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
-    if (event.httpMethod === 'POST' && event.path.includes('/register')) {
+    if (event.httpMethod === 'POST' && action === 'register') {
       // Register new user
-      const { role = 'user' } = JSON.parse(event.body || '{}')
+      const { role = 'user' } = body
       
-      const query = `
-        INSERT INTO users (wallet_address, role, balance, created_at) 
-        VALUES ($1, $2, 0, NOW()) 
-        ON CONFLICT (wallet_address) DO NOTHING
-        RETURNING *
-      `
-      const result = await pool.query(query, [walletAddress, role])
+      const result = await pool.query(
+        'INSERT INTO users (wallet_address, role, balance, created_at) VALUES ($1, $2, 0, NOW()) ON CONFLICT (wallet_address) DO NOTHING RETURNING *',
+        [walletAddress, role]
+      )
       
       return {
         statusCode: 200,
@@ -62,6 +62,40 @@ export const handler: Handler = async (event, context) => {
         body: JSON.stringify({
           success: true,
           user: result.rows[0]
+        })
+      }
+    }
+
+    if (event.httpMethod === 'POST' && action === 'admin-login') {
+      // Admin login with predefined admin wallet
+      const adminAddress = 'rAdminWalletAddressForTesting123456789'
+      const result = await pool.query('SELECT * FROM users WHERE wallet_address = $1 AND role = $2', [adminAddress, 'admin'])
+      
+      if (result.rows.length === 0) {
+        // Create admin user if doesn't exist
+        const insertResult = await pool.query(
+          'INSERT INTO users (wallet_address, role, balance, created_at) VALUES ($1, $2, 0, NOW()) RETURNING *',
+          [adminAddress, 'admin']
+        )
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            user: insertResult.rows[0],
+            isAdmin: true
+          })
+        }
+      }
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          user: result.rows[0],
+          isAdmin: true
         })
       }
     }

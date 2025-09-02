@@ -1,4 +1,4 @@
-import { Handler } from '@netlify/functions';
+import { Handler, HandlerEvent, HandlerContext, HandlerResponse } from '@netlify/functions';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -22,5 +22,26 @@ app.use(express.json());
 // API routes
 app.use('/.netlify/functions/api', api);
 
-// Export the serverless handler
-export const handler: Handler = serverless(app);
+// Create the serverless handler
+const serverlessHandler = serverless(app);
+
+// Wrap it to match Netlify's expected response format
+export const handler: Handler = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => {
+  try {
+    const result = await serverlessHandler(event, context) as any;
+    
+    // Ensure the result matches HandlerResponse format
+    return {
+      statusCode: result.statusCode || 200,
+      headers: result.headers || {},
+      body: result.body || '',
+    };
+  } catch (error) {
+    console.error('Handler error:', error);
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Internal server error' }),
+    };
+  }
+};
