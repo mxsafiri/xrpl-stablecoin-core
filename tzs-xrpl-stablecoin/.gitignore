@@ -8,6 +8,7 @@ dist/
 .env.development
 .env.test
 .env.production
+.env.multisig
 
 # Logs
 logs
