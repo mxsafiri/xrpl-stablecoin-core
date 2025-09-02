@@ -37,5 +37,9 @@
     "defi"
   ],
   "author": "Victor Muhagachi",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@netlify/functions": "^4.2.5",
+    "serverless-http": "^4.0.0"
+  }
 }

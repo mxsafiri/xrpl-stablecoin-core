@@ -19,11 +19,18 @@ router.post('/mint', authenticateToken, requireAdminOrTreasury, tokenController.
 router.post('/burn', authenticateToken, requireAdminOrTreasury, tokenController.requestBurn);
 
 /**
- * @route POST /api/token/approve
+ * @route POST /api/token/approve/:id
  * @desc Approve a multisig operation
  * @access Admin/Treasury
  */
-router.post('/approve', authenticateToken, requireAdminOrTreasury, tokenController.approveOperation);
+router.post('/approve/:id', authenticateToken, requireAdminOrTreasury, tokenController.approveOperation);
+
+/**
+ * @route POST /api/token/reject/:id
+ * @desc Reject a multisig operation
+ * @access Admin/Treasury
+ */
+router.post('/reject/:id', authenticateToken, requireAdminOrTreasury, tokenController.rejectOperation);
 
 /**
  * @route POST /api/token/transfer

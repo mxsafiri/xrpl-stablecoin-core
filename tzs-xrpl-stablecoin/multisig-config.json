@@ -1,0 +1,33 @@
+{
+  "network": "wss://s.devnet.rippletest.net:51233",
+  "multisigQuorum": 2,
+  "adminWallet": {
+    "address": "rfXQiN2AzW82XK6nMcU7DU1zsd4HpuQUoT",
+    "seed": "sEd7RePvx7MBRDda1DgbN93494oyRwp"
+  },
+  "treasuryWallet": {
+    "address": "rJYHCdSGhqTy3yEbdHm8gednD1hbMSob7D",
+    "seed": "sEdTx8kCujj2q5ZGJiTYF211gWr4bWU"
+  },
+  "signerWallets": [
+    {
+      "id": "signer_1",
+      "address": "rHoUdSpGaz5kiCHYw6ctjJA34fzf9aFqQu",
+      "seed": "sEdVcgiVTzHKc3VTgbaWNDMFo6v7vvF",
+      "weight": 1
+    },
+    {
+      "id": "signer_2",
+      "address": "rPoWBs3ZPPBGNZmA1knHSAbiCjXburAw4D",
+      "seed": "sEd75HdmCQvMYimSjvspXCynVbqMraS",
+      "weight": 1
+    },
+    {
+      "id": "signer_3",
+      "address": "rQBCqt8XEgvWDQsZay1XQY4tRXFpMeJkbh",
+      "seed": "sEd7LUJknQA2AL8CThRJ9uUZpDfXjuk",
+      "weight": 1
+    }
+  ],
+  "setupDate": "2025-08-29T11:08:47.422Z"
+}

@@ -112,16 +112,16 @@ class TokenController {
   }
 
   /**
-   * Approve a multisig operation
+   * Approve a multisig operation (legacy endpoint - kept for compatibility)
    * @param req Request
    * @param res Response
    */
-  async approveOperation(req: Request, res: Response): Promise<void> {
+  async approveOperationLegacy(req: Request, res: Response): Promise<void> {
     try {
-      const { operation_id, wallet_seed } = req.body;
+      const { operation_id, signer_id } = req.body;
 
-      if (!operation_id || !wallet_seed) {
-        res.status(400).json({ error: 'Operation ID and wallet seed are required' });
+      if (!operation_id || !signer_id) {
+        res.status(400).json({ error: 'Operation ID and signer ID are required' });
         return;
       }
 
@@ -130,17 +130,8 @@ class TokenController {
         return;
       }
 
-      // Create a wallet from the seed
-      const signerWallet = Wallet.fromSeed(wallet_seed);
-
-      // Verify that the wallet address matches the authenticated user
-      if (signerWallet.address !== req.user.walletAddress) {
-        res.status(403).json({ error: 'Wallet address does not match authenticated user' });
-        return;
-      }
-
-      // Approve the operation
-      const operation = await multisigService.approveOperation(operation_id, signerWallet);
+      // Approve the operation with signer ID
+      const operation = await multisigService.approveOperation(operation_id, signer_id);
 
       // Log the approval
       await auditService.logAction(
@@ -322,6 +313,66 @@ class TokenController {
     } catch (error) {
       logger.error('Pending operations error', error);
       res.status(500).json({ error: 'Failed to get pending operations' });
+    }
+  }
+
+  /**
+   * Approve a multisig operation
+   * @param req Request
+   * @param res Response
+   */
+  async approveOperation(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { signer_id } = req.body;
+
+      if (!id) {
+        res.status(400).json({ error: 'Operation ID is required' });
+        return;
+      }
+
+      if (!signer_id) {
+        res.status(400).json({ error: 'Signer ID is required' });
+        return;
+      }
+
+      // Approve the operation
+      const operation = await multisigService.approveOperation(id, signer_id);
+
+      res.status(200).json({
+        message: 'Operation approved successfully',
+        operation,
+      });
+    } catch (error) {
+      logger.error('Approve operation error', error);
+      res.status(500).json({ error: 'Failed to approve operation' });
+    }
+  }
+
+  /**
+   * Reject a multisig operation
+   * @param req Request
+   * @param res Response
+   */
+  async rejectOperation(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        res.status(400).json({ error: 'Operation ID is required' });
+        return;
+      }
+
+      // Reject the operation
+      const operation = await multisigService.rejectOperation(id);
+
+      res.status(200).json({
+        message: 'Operation rejected successfully',
+        operation,
+      });
+    } catch (error) {
+      logger.error('Reject operation error', error);
+      res.status(500).json({ error: 'Failed to reject operation' });
     }
   }
 }

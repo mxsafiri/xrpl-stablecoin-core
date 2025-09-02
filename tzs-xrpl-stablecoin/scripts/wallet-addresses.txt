@@ -1,0 +1,20 @@
+XRPL Multi-Sig Wallet Addresses for Manual Funding
+=================================================
+
+Please fund these wallets using the XRPL Testnet Faucet:
+https://xrpl.org/xrp-testnet-faucet.html
+
+Admin Wallet: rfXQiN2AzW82XK6nMcU7DU1zsd4HpuQUoT
+Treasury Wallet: rJYHCdSGhqTy3yEbdHm8gednD1hbMSob7D
+Signer 1 Wallet: rHoUdSpGaz5kiCHYw6ctjJA34fzf9aFqQu
+Signer 2 Wallet: rPoWBs3ZPPBGNZmA1knHSAbiCjXburAw4D
+Signer 3 Wallet: rQBCqt8XEgvWDQsZay1XQY4tRXFpMeJkbh
+
+Instructions:
+1. Visit https://xrpl.org/xrp-testnet-faucet.html
+2. Enter each wallet address above
+3. Click "Generate test net credentials" for each wallet
+4. Each wallet needs at least 10 XRP for the reserve requirement
+5. Run: node scripts/check-wallet-balances.js to verify funding
+
+After funding, the multi-signature workflow should work correctly!

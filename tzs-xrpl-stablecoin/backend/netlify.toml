@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[functions]
+  directory = "dist"
+
+[dev]
+  command = "npm run dev"
+  port = 3000

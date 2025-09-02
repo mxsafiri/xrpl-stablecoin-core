@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: tzs-stablecoin-api
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tzs-stablecoin-db
+          property: connectionString
+      - key: XRPL_NETWORK
+        value: testnet
+      - key: XRPL_CURRENCY_CODE
+        value: TZS
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MULTISIG_QUORUM
+        value: 2
+      - key: MULTISIG_SIGNERS
+        value: 3
+
+databases:
+  - name: tzs-stablecoin-db
+    plan: free

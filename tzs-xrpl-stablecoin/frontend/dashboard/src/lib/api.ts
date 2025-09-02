@@ -1,131 +1,120 @@
-import axios from 'axios'
+import { databaseAPI, authenticateWallet } from './database'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
+// Wallet-based authentication state
+let currentWallet: string | null = null
+let isAuthenticated = false
+let userRole: string | null = null
 
-// For testing purposes - in production this should come from proper authentication
-const getAuthToken = () => {
-  // This is a temporary solution for testing
-  // In production, implement proper wallet-based authentication
-  return localStorage.getItem('auth_token') || null
+// Authentication helpers
+const getCurrentWallet = () => {
+  return localStorage.getItem('current_wallet') || null
 }
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+const setCurrentWallet = (wallet: string, role: string) => {
+  localStorage.setItem('current_wallet', wallet)
+  localStorage.setItem('user_role', role)
+  currentWallet = wallet
+  userRole = role
+  isAuthenticated = true
+}
 
-// Add auth token to requests if available
-api.interceptors.request.use((config) => {
-  const token = getAuthToken()
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+const clearAuth = () => {
+  localStorage.removeItem('current_wallet')
+  localStorage.removeItem('user_role')
+  currentWallet = null
+  userRole = null
+  isAuthenticated = false
+}
 
-// Token Operations
+// Token operations via Netlify Functions
 export const tokenAPI = {
   mint: async (amount: string, destinationWallet: string, reference?: string) => {
-    const response = await api.post('/token/mint', {
-      amount: parseFloat(amount),
-      destinationWallet,
-      reference,
-    })
-    return response.data
+    // For demo - this would normally trigger XRPL transaction
+    console.log('Mint operation:', { amount, destinationWallet, reference })
+    return { success: true, txHash: 'demo_mint_' + Date.now() }
   },
 
   burn: async (amount: string, sourceWallet: string, reference?: string) => {
-    const response = await api.post('/token/burn', {
-      amount: parseFloat(amount),
-      sourceWallet,
-      reference,
-    })
-    return response.data
+    // For demo - this would normally trigger XRPL transaction
+    console.log('Burn operation:', { amount, sourceWallet, reference })
+    return { success: true, txHash: 'demo_burn_' + Date.now() }
   },
 
   transfer: async (amount: string, sourceWallet: string, destinationWallet: string) => {
-    const response = await api.post('/token/transfer', {
-      amount: parseFloat(amount),
-      sourceWallet,
-      destinationWallet,
-    })
-    return response.data
+    // For demo - this would normally trigger XRPL transaction
+    console.log('Transfer operation:', { amount, sourceWallet, destinationWallet })
+    return { success: true, txHash: 'demo_transfer_' + Date.now() }
   },
 
   getTransactions: async () => {
-    const response = await api.get('/token/transactions')
-    return response.data
+    return await databaseAPI.getTransactions()
   },
 
   getBalance: async (wallet: string) => {
-    const response = await api.get(`/token/balance/${wallet}`)
-    return response.data
+    const balances = await databaseAPI.getWalletBalances()
+    return balances.find((b: any) => b.wallet_address === wallet)?.balance || 0
   },
 }
 
 // Wallet Operations
 export const walletAPI = {
   getBalance: async (address: string) => {
-    const response = await api.get(`/wallets/${address}/balance`)
-    return response.data
+    return await tokenAPI.getBalance(address)
   },
 
   getTransactions: async (address: string) => {
-    const response = await api.get(`/wallets/${address}/transactions`)
-    return response.data
+    const transactions = await databaseAPI.getTransactions()
+    return transactions.filter((t: any) => t.user_wallet === address)
   },
 }
 
 // Multisig Operations
 export const multisigAPI = {
   getPendingOperations: async () => {
-    const response = await api.get('/token/pending-operations')
-    return response.data
+    return await databaseAPI.getPendingOperations()
   },
   
   approve: async (operationId: string) => {
-    const response = await api.post(`/token/approve/${operationId}`)
-    return response.data
+    const wallet = getCurrentWallet()
+    if (!wallet) throw new Error('Not authenticated')
+    return await databaseAPI.approveOperation(operationId, wallet)
   },
   
   getCollateralBalance: async () => {
-    const response = await api.get('/token/collateral')
-    return response.data
+    return await databaseAPI.getCollateralBalance()
   },
 }
 
-// Authentication API
+// Authentication API - wallet-based
 export const authAPI = {
   login: async (walletAddress: string) => {
-    // Simplified login for testing - just use wallet address
-    const response = await api.post('/auth/login', {
-      walletAddress,
-      signature: 'test_signature',
-      message: 'Login to TZS Dashboard'
-    })
-    return response.data
+    try {
+      const auth = await authenticateWallet(walletAddress)
+      setCurrentWallet(walletAddress, auth.user.role)
+      return {
+        success: true,
+        user: auth.user,
+        isAdmin: auth.isAdmin
+      }
+    } catch (error) {
+      throw new Error('Wallet not authorized')
+    }
   },
   
   // Quick admin login for testing
   loginAsAdmin: async () => {
-    try {
-      const response = await api.post('/auth/login', {
-        walletAddress: 'rph2dj1V9ZoWpSEz8YKgmSm8YpNCQJL8ZM', // Admin wallet from backend
-        signature: 'test_signature',
-        message: 'Admin login'
-      })
-      if (response.data.token) {
-        localStorage.setItem('auth_token', response.data.token)
-        localStorage.setItem('user_role', response.data.user.role)
-      }
-      return response.data
-    } catch (error) {
-      console.error('Admin login failed:', error)
-      throw error
-    }
+    return await authAPI.login('rfXQiN2AzW82XK6nMcU7DU1zsd4HpuQUoT')
+  },
+
+  logout: () => {
+    clearAuth()
+  },
+
+  isAuthenticated: () => {
+    return getCurrentWallet() !== null
+  },
+
+  getUserRole: () => {
+    return localStorage.getItem('user_role')
   }
 }
-
-export default api

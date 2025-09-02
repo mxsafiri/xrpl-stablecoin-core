@@ -8,10 +8,13 @@ import { TokenOperations } from '@/components/dashboard/TokenOperations'
 import { WalletManagement } from '@/components/dashboard/WalletManagement'
 import { TransactionMonitor } from '@/components/dashboard/TransactionMonitor'
 import { MultisigPanel } from '@/components/dashboard/MultisigPanel'
+import { useAuth } from '@/contexts/AuthContext'
+import WalletAuth from '@/components/auth/WalletAuth'
 
 type ActiveTab = 'overview' | 'tokens' | 'wallets' | 'transactions' | 'multisig'
 
 export default function Dashboard() {
+  const { user, isAuthenticated, loading } = useAuth()
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview')
   const [isConnected, setIsConnected] = useState(false)
 
@@ -19,6 +22,11 @@ export default function Dashboard() {
     // Initialize XRPL connection
     setIsConnected(true)
   }, [])
+
+  const handleAuthSuccess = (userData: any) => {
+    // Authentication handled by AuthContext
+    console.log('User authenticated:', userData)
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -35,6 +43,18 @@ export default function Dashboard() {
       default:
         return <DashboardOverview />
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <WalletAuth onAuthSuccess={handleAuthSuccess} />
   }
 
   return (

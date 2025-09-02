@@ -1,29 +1,29 @@
 {
   "pages": {
     "/_not-found": [
-      "static/chunks/webpack-96afb384b86291d8.js",
-      "static/chunks/fd9d1056-73d4d47ecfd3597d.js",
-      "static/chunks/472-68e10d57d8f21eee.js",
-      "static/chunks/main-app-951eafdd6c2cb08b.js",
-      "static/chunks/app/_not-found-e341e6673f604bfc.js"
+      "static/chunks/webpack-f94adec2caf51d54.js",
+      "static/chunks/1dd3208c-d54194f6952ae8c5.js",
+      "static/chunks/53-8c0750b14f478d22.js",
+      "static/chunks/main-app-85c7c5e6cbabece8.js",
+      "static/chunks/app/_not-found-f6351dd66786567b.js"
     ],
     "/layout": [
-      "static/chunks/webpack-96afb384b86291d8.js",
-      "static/chunks/fd9d1056-73d4d47ecfd3597d.js",
-      "static/chunks/472-68e10d57d8f21eee.js",
-      "static/chunks/main-app-951eafdd6c2cb08b.js",
-      "static/css/96b611905c77bb20.css",
-      "static/chunks/app/layout-ed28d84c22ae9163.js"
+      "static/chunks/webpack-f94adec2caf51d54.js",
+      "static/chunks/1dd3208c-d54194f6952ae8c5.js",
+      "static/chunks/53-8c0750b14f478d22.js",
+      "static/chunks/main-app-85c7c5e6cbabece8.js",
+      "static/css/722aad16f74dacae.css",
+      "static/chunks/app/layout-52118d45c69e08f2.js"
     ],
     "/page": [
-      "static/chunks/webpack-96afb384b86291d8.js",
-      "static/chunks/fd9d1056-73d4d47ecfd3597d.js",
-      "static/chunks/472-68e10d57d8f21eee.js",
-      "static/chunks/main-app-951eafdd6c2cb08b.js",
-      "static/chunks/aaea2bcf-be5e6ddd7055356d.js",
-      "static/chunks/e37a0b60-2f3267e3651da033.js",
-      "static/chunks/648-a29665ccc51d3698.js",
-      "static/chunks/app/page-d4fd04645d18cf39.js"
+      "static/chunks/webpack-f94adec2caf51d54.js",
+      "static/chunks/1dd3208c-d54194f6952ae8c5.js",
+      "static/chunks/53-8c0750b14f478d22.js",
+      "static/chunks/main-app-85c7c5e6cbabece8.js",
+      "static/chunks/891cff7f-350ae6001845146b.js",
+      "static/chunks/7bf36345-7717d067df4345b4.js",
+      "static/chunks/496-532bf679622702d4.js",
+      "static/chunks/app/page-539c7b689bd68ada.js"
     ]
   }
 }
