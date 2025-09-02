@@ -40,3 +40,4 @@ coverage/
 # Build artifacts
 build/
 jukumu-web-portal/
+frontend/dashboard/.next/
