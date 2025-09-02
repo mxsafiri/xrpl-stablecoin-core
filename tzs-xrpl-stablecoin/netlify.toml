@@ -10,9 +10,10 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "/.netlify/functions/api/:splat"
   status = 200
 
+# Handle Next.js static export SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
