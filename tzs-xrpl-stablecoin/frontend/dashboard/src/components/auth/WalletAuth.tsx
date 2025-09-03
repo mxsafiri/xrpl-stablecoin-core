@@ -13,6 +13,9 @@ export default function WalletAuth({ onAuthSuccess }: WalletAuthProps) {
   const [mode, setMode] = useState<'login' | 'register' | 'import'>('login')
   const [walletAddress, setWalletAddress] = useState('')
   const [walletSeed, setWalletSeed] = useState('')
+  const [username, setUsername] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [newWallet, setNewWallet] = useState<WalletInfo | null>(null)
@@ -96,7 +99,7 @@ export default function WalletAuth({ onAuthSuccess }: WalletAuthProps) {
 
   // Register wallet in database
   const registerWalletInDatabase = async (address: string, role: string = 'user') => {
-    await databaseAPI.registerUser(address, role)
+    await authAPI.register(address, role, username, displayName, email)
   }
 
   // Quick admin login for testing
@@ -117,7 +120,7 @@ export default function WalletAuth({ onAuthSuccess }: WalletAuthProps) {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900">TZS Stablecoin</h2>
-          <p className="mt-2 text-gray-600">Connect your XRPL wallet</p>
+          <p className="mt-2 text-gray-600">Create your account or sign in</p>
         </div>
 
         {error && (
@@ -171,7 +174,7 @@ export default function WalletAuth({ onAuthSuccess }: WalletAuthProps) {
                   : 'bg-gray-200 text-gray-700'
               }`}
             >
-              Register
+              Sign Up
             </button>
             <button
               onClick={() => setMode('import')}
@@ -209,15 +212,45 @@ export default function WalletAuth({ onAuthSuccess }: WalletAuthProps) {
           {mode === 'register' && (
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-                Create a new XRPL wallet for TZS Stablecoin
+                Create your TZS Stablecoin account
               </p>
+              
+              <input
+                type="text"
+                placeholder="Choose a username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              
+              <input
+                type="text"
+                placeholder="Your full name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              
+              <input
+                type="email"
+                placeholder="Email address (optional)"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              
               <button
                 onClick={handleRegister}
-                disabled={loading}
+                disabled={loading || !username.trim()}
                 className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50"
               >
-                {loading ? 'Creating Wallet...' : 'Create New Wallet'}
+                {loading ? 'Creating Account...' : 'Create Account'}
               </button>
+              
+              <p className="text-xs text-gray-500">
+                A secure wallet will be created automatically for your account
+              </p>
             </div>
           )}
 

@@ -28,7 +28,7 @@ export function Header({ isConnected }: HeaderProps) {
           <div className="flex items-center space-x-2">
             <div className="text-right">
               <p className="text-sm font-medium text-gray-900">
-                {user?.wallet_address?.slice(0, 8)}...{user?.wallet_address?.slice(-6)}
+                {user?.display_name || user?.username || `${user?.wallet_address?.slice(0, 8)}...${user?.wallet_address?.slice(-6)}`}
               </p>
               <p className="text-xs text-gray-500">
                 {isAdmin ? '👑 Admin' : '👤 User'} • Balance: {user?.balance || 0} TZS

@@ -9,6 +9,9 @@ interface User {
   role: string
   balance: number
   created_at: string
+  username?: string
+  display_name?: string
+  email?: string
 }
 
 interface AuthContextType {

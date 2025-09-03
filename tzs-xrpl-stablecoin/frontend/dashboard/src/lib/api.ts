@@ -26,24 +26,39 @@ const clearAuth = () => {
   isAuthenticated = false
 }
 
-// Token operations via Netlify Functions
+// Token operations via Netlify Functions with real XRPL integration
 export const tokenAPI = {
   mint: async (amount: string, destinationWallet: string, reference?: string) => {
-    // For demo - this would normally trigger XRPL transaction
-    console.log('Mint operation:', { amount, destinationWallet, reference })
-    return { success: true, txHash: 'demo_mint_' + Date.now() }
+    const response = await fetch('/.netlify/functions/database/mint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: parseFloat(amount), destinationWallet, reference })
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to mint tokens')
+    }
+    
+    return await response.json()
   },
 
   burn: async (amount: string, sourceWallet: string, reference?: string) => {
-    // For demo - this would normally trigger XRPL transaction
-    console.log('Burn operation:', { amount, sourceWallet, reference })
-    return { success: true, txHash: 'demo_burn_' + Date.now() }
+    const response = await fetch('/.netlify/functions/database/burn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: parseFloat(amount), sourceWallet, reference })
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to burn tokens')
+    }
+    
+    return await response.json()
   },
 
   transfer: async (amount: string, sourceWallet: string, destinationWallet: string) => {
-    // For demo - this would normally trigger XRPL transaction
-    console.log('Transfer operation:', { amount, sourceWallet, destinationWallet })
-    return { success: true, txHash: 'demo_transfer_' + Date.now() }
+    // Transfer is mint from treasury to destination
+    return await tokenAPI.mint(amount, destinationWallet, `Transfer from ${sourceWallet}`)
   },
 
   getTransactions: async () => {
@@ -137,5 +152,31 @@ export const authAPI = {
 
   getUserRole: () => {
     return localStorage.getItem('user_role')
+  },
+
+  register: async (walletAddress: string, role: string = 'user', username?: string, displayName?: string, email?: string) => {
+    const response = await fetch('/.netlify/functions/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        walletAddress, 
+        action: 'register', 
+        role,
+        username,
+        displayName,
+        email
+      })
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Registration failed')
+    }
+    
+    const data = await response.json()
+    return {
+      success: true,
+      user: data.user
+    }
   }
 }
