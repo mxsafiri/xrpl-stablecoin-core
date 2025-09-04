@@ -9,7 +9,8 @@ import {
   Activity, 
   Users, 
   Settings,
-  Smartphone
+  Smartphone,
+  ArrowUpRight
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -28,6 +29,7 @@ const adminNavigation = [
 const userNavigation = [
   { id: 'overview', name: 'My Wallet', icon: Wallet },
   { id: 'deposit', name: 'Deposit', icon: Smartphone },
+  { id: 'withdraw', name: 'Withdraw', icon: ArrowUpRight },
   { id: 'transactions', name: 'My Transactions', icon: Activity },
 ]
 

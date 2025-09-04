@@ -17,6 +17,7 @@ import {
   Smartphone 
 } from 'lucide-react';
 import DepositPanel from './DepositPanel';
+import { WithdrawPanel } from './WithdrawPanel';
 
 interface Transaction {
   id: string;
@@ -37,7 +38,7 @@ interface WalletStats {
 
 export default function UserWallet() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'deposit' | 'send' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'deposit' | 'withdraw' | 'send' | 'history'>('overview');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [walletStats, setWalletStats] = useState<WalletStats>({
     totalBalance: 0,
@@ -225,6 +226,9 @@ export default function UserWallet() {
 
       case 'deposit':
         return <DepositPanel />;
+
+      case 'withdraw':
+        return <WithdrawPanel userBalance={walletStats.totalBalance} onWithdrawSuccess={loadWalletData} />;
 
       case 'send':
         return (

@@ -30,9 +30,9 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Verify webhook authenticity
-    const apiKey = event.headers['x-api-key'];
-    if (apiKey !== process.env.ZENOPAY_API_KEY) {
+    // Optional webhook authentication (ZenoPay might not send API key)
+    const apiKey = event.headers['x-api-key'] || event.headers['X-API-Key'];
+    if (apiKey && apiKey !== process.env.ZENOPAY_API_KEY) {
       console.error('Invalid API key in webhook');
       return {
         statusCode: 401,
@@ -44,7 +44,7 @@ export const handler: Handler = async (event, context) => {
     const payload: ZenoWebhookPayload = JSON.parse(event.body || '{}');
     const { order_id, payment_status, reference } = payload;
 
-    console.log(`ZenoPay webhook received: ${order_id} - ${payment_status}`);
+    console.log(`ZenoPay webhook received:`, JSON.stringify(payload, null, 2));
 
     // Only process completed payments
     if (payment_status !== 'COMPLETED') {
