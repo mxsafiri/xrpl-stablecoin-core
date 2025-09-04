@@ -37,7 +37,7 @@ export const handler: Handler = async (event, context) => {
     const depositResult = await sql`
       SELECT pd.*, u.id as user_id, u.balance, u.username
       FROM pending_deposits pd
-      JOIN users u ON pd.user_id = u.id
+      JOIN users u ON pd.user_id::text = u.id::text
       WHERE pd.order_id = ${order_id} AND pd.status = 'pending'
     `;
 
