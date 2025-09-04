@@ -335,6 +335,41 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
+    // Handle POST requests with actions
+    if (event.httpMethod === 'POST') {
+      const { action, wallet_address, user_id } = body;
+
+      if (action === 'getUserBalance') {
+        const result = await sql`
+          SELECT balance FROM users WHERE wallet_address = ${wallet_address}
+        `;
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            balance: result[0]?.balance || '0',
+            wallet_address 
+          })
+        };
+      }
+
+      if (action === 'getUserTransactions') {
+        const result = await sql`
+          SELECT * FROM transactions WHERE user_id = ${user_id}
+          ORDER BY created_at DESC LIMIT 20
+        `;
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            transactions: result,
+            pendingDeposits: 0,
+            monthlySpending: 0
+          })
+        };
+      }
+    }
+
     if (event.httpMethod === 'POST' && path.startsWith('/approve/')) {
       const operationId = path.split('/')[2]
       const { userWallet } = JSON.parse(event.body || '{}')

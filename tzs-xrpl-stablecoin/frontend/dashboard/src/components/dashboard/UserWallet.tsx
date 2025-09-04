@@ -57,6 +57,22 @@ export default function UserWallet() {
   const loadWalletData = async () => {
     setIsLoading(true);
     try {
+      // First, get the current user balance from database
+      const balanceResponse = await fetch('/.netlify/functions/database', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'getUserBalance',
+          wallet_address: user?.wallet_address
+        })
+      });
+
+      let currentBalance = 0;
+      if (balanceResponse.ok) {
+        const balanceData = await balanceResponse.json();
+        currentBalance = parseFloat(balanceData.balance || '0');
+      }
+
       // Load user transactions and stats
       const response = await fetch('/.netlify/functions/database', {
         method: 'POST',
@@ -71,7 +87,7 @@ export default function UserWallet() {
         const data = await response.json();
         setTransactions(data.transactions || []);
         setWalletStats({
-          totalBalance: user?.balance || 0,
+          totalBalance: currentBalance,
           pendingDeposits: data.pendingDeposits || 0,
           totalTransactions: data.transactions?.length || 0,
           monthlySpending: data.monthlySpending || 0
