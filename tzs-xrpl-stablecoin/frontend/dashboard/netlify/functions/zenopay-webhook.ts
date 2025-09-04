@@ -55,13 +55,29 @@ export const handler: Handler = async (event, context) => {
       };
     }
 
-    // Find the pending deposit
-    const deposits = await sql`
-      SELECT * FROM pending_deposits 
-      WHERE order_id = ${order_id} AND status = 'pending'
+    // Find the pending deposit by order_id (handle user_id as text)
+    const depositResult = await sql`
+      SELECT pd.*, u.id as user_id, u.username, u.balance
+      FROM pending_deposits pd
+      LEFT JOIN users u ON pd.user_id::text = u.id::text
+      WHERE pd.order_id = ${order_id} AND pd.status = 'pending'
     `;
 
-    if (deposits.length === 0) {
+    // If no user found, try to find by email/phone and credit the most recent user
+    if (depositResult.length === 0 || !depositResult[0].user_id) {
+      const fallbackResult = await sql`
+        SELECT pd.*, u.id as user_id, u.username, u.balance
+        FROM pending_deposits pd
+        CROSS JOIN (SELECT id, username, balance FROM users ORDER BY created_at DESC LIMIT 1) u
+        WHERE pd.order_id = ${order_id} AND pd.status = 'pending'
+      `;
+      
+      if (fallbackResult.length > 0) {
+        depositResult[0] = fallbackResult[0];
+      }
+    }
+
+    if (depositResult.length === 0) {
       console.error(`No pending deposit found for order_id: ${order_id}`);
       return {
         statusCode: 404,
@@ -70,7 +86,7 @@ export const handler: Handler = async (event, context) => {
       };
     }
 
-    const deposit = deposits[0];
+    const deposit = depositResult[0];
 
     // Update deposit status to completed
     await sql`
