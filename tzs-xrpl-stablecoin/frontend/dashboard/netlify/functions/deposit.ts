@@ -30,7 +30,7 @@ class ZenoPayService {
   constructor() {
     this.apiKey = process.env.ZENOPAY_API_KEY || '';
     this.baseUrl = 'https://zenoapi.com/api/payments';
-    this.webhookUrl = `${process.env.URL}/.netlify/functions/zenopay-webhook`;
+    this.webhookUrl = 'https://nedalabs.netlify.app/.netlify/functions/zenopay-webhook';
   }
 
   async initiatePayment(
