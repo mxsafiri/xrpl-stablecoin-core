@@ -1,13 +1,15 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 import { 
   LayoutDashboard, 
   Coins, 
   Wallet, 
   Activity, 
   Users, 
-  Settings 
+  Settings,
+  Smartphone
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -15,7 +17,7 @@ interface SidebarProps {
   onTabChange: (tab: string) => void
 }
 
-const navigation = [
+const adminNavigation = [
   { id: 'overview', name: 'Overview', icon: LayoutDashboard },
   { id: 'tokens', name: 'Token Operations', icon: Coins },
   { id: 'wallets', name: 'Wallets', icon: Wallet },
@@ -23,7 +25,16 @@ const navigation = [
   { id: 'multisig', name: 'Multisig', icon: Users },
 ]
 
+const userNavigation = [
+  { id: 'overview', name: 'My Wallet', icon: Wallet },
+  { id: 'deposit', name: 'Deposit', icon: Smartphone },
+  { id: 'transactions', name: 'My Transactions', icon: Activity },
+]
+
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+  const { isAdmin } = useAuth()
+  const navigation = isAdmin ? adminNavigation : userNavigation
+  
   return (
     <div className="w-64 bg-white shadow-sm border-r border-gray-200">
       <div className="p-6">
@@ -33,7 +44,9 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">TZS</h1>
-            <p className="text-sm text-gray-500">Stablecoin</p>
+            <p className="text-sm text-gray-500">
+              {isAdmin ? 'Admin Panel' : 'Stablecoin'}
+            </p>
           </div>
         </div>
       </div>

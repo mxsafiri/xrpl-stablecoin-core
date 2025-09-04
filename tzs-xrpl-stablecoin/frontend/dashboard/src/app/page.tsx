@@ -8,13 +8,15 @@ import { TokenOperations } from '@/components/dashboard/TokenOperations'
 import { WalletManagement } from '@/components/dashboard/WalletManagement'
 import { TransactionMonitor } from '@/components/dashboard/TransactionMonitor'
 import { MultisigPanel } from '@/components/dashboard/MultisigPanel'
+import DepositPanel from '@/components/dashboard/DepositPanel'
+import UserWallet from '@/components/dashboard/UserWallet'
 import { useAuth } from '@/contexts/AuthContext'
 import WalletAuth from '@/components/auth/WalletAuth'
 
-type ActiveTab = 'overview' | 'tokens' | 'wallets' | 'transactions' | 'multisig'
+type ActiveTab = 'overview' | 'tokens' | 'wallets' | 'transactions' | 'multisig' | 'deposit'
 
 export default function Dashboard() {
-  const { user, isAuthenticated, loading } = useAuth()
+  const { user, isAuthenticated, isAdmin, loading } = useAuth()
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview')
   const [isConnected, setIsConnected] = useState(false)
 
@@ -29,19 +31,34 @@ export default function Dashboard() {
   }
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return <DashboardOverview />
-      case 'tokens':
-        return <TokenOperations />
-      case 'wallets':
-        return <WalletManagement />
-      case 'transactions':
-        return <TransactionMonitor />
-      case 'multisig':
-        return <MultisigPanel />
-      default:
-        return <DashboardOverview />
+    if (isAdmin) {
+      // Admin dashboard content
+      switch (activeTab) {
+        case 'overview':
+          return <DashboardOverview />
+        case 'tokens':
+          return <TokenOperations />
+        case 'wallets':
+          return <WalletManagement />
+        case 'transactions':
+          return <TransactionMonitor />
+        case 'multisig':
+          return <MultisigPanel />
+        default:
+          return <DashboardOverview />
+      }
+    } else {
+      // User wallet content
+      switch (activeTab) {
+        case 'overview':
+          return <UserWallet />
+        case 'deposit':
+          return <DepositPanel />
+        case 'transactions':
+          return <TransactionMonitor />
+        default:
+          return <UserWallet />
+      }
     }
   }
 
