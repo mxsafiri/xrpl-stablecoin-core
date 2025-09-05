@@ -1,13 +1,7 @@
 import { Handler } from '@netlify/functions'
-import { Pool } from 'pg'
+import { neon } from '@neondatabase/serverless'
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  max: 1, // Limit connections for serverless
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-})
+const sql = neon(process.env.DATABASE_URL!)
 
 export const handler: Handler = async (event, context) => {
   const headers = {
@@ -35,9 +29,9 @@ export const handler: Handler = async (event, context) => {
 
     if (event.httpMethod === 'POST' && action === 'login') {
       // Login user
-      const result = await pool.query('SELECT * FROM users WHERE wallet_address = $1', [walletAddress])
+      const result = await sql`SELECT * FROM users WHERE wallet_address = ${walletAddress}`
       
-      if (result.rows.length === 0) {
+      if (result.length === 0) {
         return {
           statusCode: 404,
           headers,
@@ -50,8 +44,8 @@ export const handler: Handler = async (event, context) => {
         headers,
         body: JSON.stringify({
           success: true,
-          user: result.rows[0],
-          isAdmin: result.rows[0].role === 'admin'
+          user: result[0],
+          isAdmin: result[0].role === 'admin'
         })
       }
     }
@@ -61,17 +55,17 @@ export const handler: Handler = async (event, context) => {
       const { role = 'user' } = body
       
       // Ensure required columns exist
-      await pool.query(`
+      await sql`
         ALTER TABLE users 
         ADD COLUMN IF NOT EXISTS balance DECIMAL(20,8) DEFAULT 0,
         ADD COLUMN IF NOT EXISTS username VARCHAR(50) UNIQUE,
         ADD COLUMN IF NOT EXISTS display_name VARCHAR(100),
         ADD COLUMN IF NOT EXISTS email VARCHAR(255),
         ADD COLUMN IF NOT EXISTS admin_level VARCHAR(20) DEFAULT 'user'
-      `)
+      `
 
       // Create pending operations table for multi-sig workflow
-      await pool.query(`
+      await sql`
         CREATE TABLE IF NOT EXISTS pending_operations (
           id SERIAL PRIMARY KEY,
           operation_type VARCHAR(20) NOT NULL,
@@ -86,10 +80,10 @@ export const handler: Handler = async (event, context) => {
           required_approvals INTEGER DEFAULT 2,
           current_approvals INTEGER DEFAULT 0
         )
-      `)
+      `
 
       // Create operation approvals table
-      await pool.query(`
+      await sql`
         CREATE TABLE IF NOT EXISTS operation_approvals (
           id SERIAL PRIMARY KEY,
           operation_id INTEGER REFERENCES pending_operations(id),
@@ -97,29 +91,29 @@ export const handler: Handler = async (event, context) => {
           approved_at TIMESTAMP DEFAULT NOW(),
           UNIQUE(operation_id, approved_by)
         )
-      `)
+      `
 
       // Create system settings table for configurable thresholds
-      await pool.query(`
+      await sql`
         CREATE TABLE IF NOT EXISTS system_settings (
           id SERIAL PRIMARY KEY,
           setting_key VARCHAR(50) UNIQUE NOT NULL,
           setting_value TEXT NOT NULL,
           updated_at TIMESTAMP DEFAULT NOW()
         )
-      `)
+      `
 
       // Insert default threshold setting
-      await pool.query(`
+      await sql`
         INSERT INTO system_settings (setting_key, setting_value)
         VALUES ('multisig_threshold_usd', '5000')
         ON CONFLICT (setting_key) DO NOTHING
-      `)
+      `
 
       // Check if username is already taken
       if (username) {
-        const usernameCheck = await pool.query('SELECT id FROM users WHERE username = $1', [username])
-        if (usernameCheck.rows.length > 0) {
+        const usernameCheck = await sql`SELECT id FROM users WHERE username = ${username}`
+        if (usernameCheck.length > 0) {
           return {
             statusCode: 400,
             headers,
@@ -128,17 +122,19 @@ export const handler: Handler = async (event, context) => {
         }
       }
       
-      const result = await pool.query(
-        'INSERT INTO users (wallet_address, role, balance, username, display_name, email, created_at) VALUES ($1, $2, 0, $3, $4, $5, NOW()) ON CONFLICT (wallet_address) DO NOTHING RETURNING *',
-        [walletAddress, role, username, displayName, email]
-      )
+      const result = await sql`
+        INSERT INTO users (wallet_address, role, balance, username, display_name, email, created_at) 
+        VALUES (${walletAddress}, ${role}, 0, ${username}, ${displayName}, ${email}, NOW()) 
+        ON CONFLICT (wallet_address) DO NOTHING 
+        RETURNING *
+      `
       
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           success: true,
-          user: result.rows[0]
+          user: result[0]
         })
       }
     }
@@ -146,28 +142,22 @@ export const handler: Handler = async (event, context) => {
     if (event.httpMethod === 'POST' && action === 'admin-login') {
       // Admin login with predefined admin wallet
       const adminAddress = 'rAdminWalletAddressForTesting123456789'
-      const result = await pool.query('SELECT * FROM users WHERE wallet_address = $1 AND role = $2', [adminAddress, 'admin'])
+      const result = await sql`SELECT * FROM users WHERE wallet_address = ${adminAddress} AND role = 'admin'`
       
-      if (result.rows.length === 0) {
-        // Ensure balance column exists
-        try {
-          await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS balance DECIMAL(20,8) DEFAULT 0')
-        } catch (alterError) {
-          console.log('Column may already exist:', alterError)
-        }
-        
+      if (result.length === 0) {
         // Create admin user if doesn't exist
-        const insertResult = await pool.query(
-          'INSERT INTO users (wallet_address, role, balance, created_at) VALUES ($1, $2, 0, NOW()) RETURNING *',
-          [adminAddress, 'admin']
-        )
+        const insertResult = await sql`
+          INSERT INTO users (wallet_address, role, balance, created_at) 
+          VALUES (${adminAddress}, 'admin', 0, NOW()) 
+          RETURNING *
+        `
         
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
             success: true,
-            user: insertResult.rows[0],
+            user: insertResult[0],
             isAdmin: true
           })
         }
@@ -178,7 +168,7 @@ export const handler: Handler = async (event, context) => {
         headers,
         body: JSON.stringify({
           success: true,
-          user: result.rows[0],
+          user: result[0],
           isAdmin: true
         })
       }
