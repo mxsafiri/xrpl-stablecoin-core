@@ -26,7 +26,7 @@ export const handler: Handler = async (event, context) => {
     await client.fundWallet(tempWallet);
     
     // Send XRP to main wallet for trust line creation
-    const payment = {
+    const payment: any = {
       TransactionType: 'Payment',
       Account: tempWallet.address,
       Destination: mainWalletAddress,
@@ -44,8 +44,8 @@ export const handler: Handler = async (event, context) => {
     const treasuryAddress = process.env.XRPL_TREASURY_ADDRESS || 'rMNVNXxk27WPE1zyFSPC6RRnPP7RBBGeCv';
     
     // Create trust line for TZS tokens
-    const trustSetTx = {
-      TransactionType: 'TrustSet',
+    const trustSetTx: any = {
+      TransactionType: 'TrustSet' as const,
       Account: newWallet.address,
       LimitAmount: {
         currency: 'TZS',
