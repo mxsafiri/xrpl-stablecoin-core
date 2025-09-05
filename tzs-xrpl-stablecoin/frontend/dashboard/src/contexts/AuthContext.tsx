@@ -59,6 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await authAPI.login(walletAddress)
       setUser(result.user)
+      // Store auth data in localStorage for persistence
+      localStorage.setItem('current_wallet', walletAddress)
+      localStorage.setItem('user_role', result.user.role)
+    } catch (error) {
+      console.error('Login failed:', error)
+      throw error // Re-throw so WalletAuth can handle it
     } finally {
       setLoading(false)
     }

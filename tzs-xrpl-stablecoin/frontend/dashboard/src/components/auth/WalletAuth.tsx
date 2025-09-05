@@ -31,10 +31,13 @@ export default function WalletAuth({ onAuthSuccess }: WalletAuthProps) {
     setError('')
 
     try {
+      console.log('Attempting login with wallet:', walletAddress)
       const result = await authAPI.login(walletAddress)
+      console.log('Login successful:', result)
       onAuthSuccess(result.user)
     } catch (err) {
-      setError('Wallet not found or not authorized. Please register first.')
+      console.error('Login error:', err)
+      setError(`Login failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
