@@ -62,10 +62,10 @@ export const handler: Handler = async (event, context) => {
       // Execute immediately for amounts below threshold
       const txHash = await xrplService.mintTokens(destinationWallet, amount, reference);
       
-      // Record in database
+      // Record in database (minting has no from_wallet, only to_wallet)
       await sql`
-        INSERT INTO transactions (xrpl_transaction_hash, type, to_wallet, amount, created_at)
-        VALUES (${txHash}, 'mint', ${destinationWallet}, ${amount}, NOW())
+        INSERT INTO transactions (xrpl_transaction_hash, type, from_wallet, to_wallet, amount, created_at)
+        VALUES (${txHash}, 'mint', 'treasury', ${destinationWallet}, ${amount}, NOW())
       `;
       
       return {
