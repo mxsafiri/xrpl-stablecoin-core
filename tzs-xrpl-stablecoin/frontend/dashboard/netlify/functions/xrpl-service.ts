@@ -1,9 +1,12 @@
 import { Client, Wallet, xrpToDrops, dropsToXrp, Payment, TxResponse } from 'xrpl'
 
 const XRPL_NETWORK = process.env.XRPL_NETWORK || 'wss://s.altnet.rippletest.net:51233'
-const ISSUER_ADDRESS = process.env.XRPL_ISSUER_ADDRESS || 'rph2dj1V9ZoWpSEz8YKgmSm8YpNCQJL8ZM'
 const TREASURY_SEED = process.env.XRPL_TREASURY_SEED || 'sEdVgrmgKYtx7NNZNupRJLqyEweRZC9'
 const CURRENCY_CODE = process.env.XRPL_CURRENCY_CODE || 'TZS'
+
+// Treasury wallet IS the issuer - no separate issuer address needed
+const treasuryWallet = Wallet.fromSeed(TREASURY_SEED)
+const ISSUER_ADDRESS = treasuryWallet.address
 
 export class XRPLService {
   private client: Client
