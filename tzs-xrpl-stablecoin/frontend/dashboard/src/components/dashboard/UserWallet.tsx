@@ -57,20 +57,20 @@ export default function UserWallet() {
   const loadWalletData = async () => {
     setIsLoading(true);
     try {
-      // First, get the current user balance from database
-      const balanceResponse = await fetch('/.netlify/functions/database', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'getUserBalance',
-          wallet_address: user?.wallet_address
-        })
-      });
-
-      let currentBalance = 0;
-      if (balanceResponse.ok) {
-        const balanceData = await balanceResponse.json();
-        currentBalance = parseFloat(balanceData.balance || '0');
+      // Get the current user balance directly from user object or fetch fresh data
+      let currentBalance = parseFloat(String(user?.balance || '0'));
+      
+      // If balance is 0, try to fetch fresh balance from database
+      if (currentBalance === 0 && user?.wallet_address) {
+        try {
+          const balanceResponse = await fetch(`/.netlify/functions/database/balance/${user.wallet_address}`);
+          if (balanceResponse.ok) {
+            const balanceData = await balanceResponse.json();
+            currentBalance = parseFloat(balanceData.tzsBalance || '0');
+          }
+        } catch (balanceError) {
+          console.log('Could not fetch fresh balance:', balanceError);
+        }
       }
 
       // Load user transactions and stats
