@@ -66,8 +66,8 @@ export const handler: Handler = async (event, context) => {
 
     // Record the conversion transaction
     await sql`
-      INSERT INTO transactions (xrpl_transaction_hash, type, from_wallet, to_wallet, amount, created_at, user_id)
-      VALUES (${txHash}, 'fiat_to_token', 'fiat_balance', ${userWalletAddress}, ${amount}, NOW(), ${userId})
+      INSERT INTO transactions (xrpl_transaction_hash, type, from_wallet, to_wallet, amount, created_at)
+      VALUES (${txHash}, 'fiat_to_token', 'fiat_balance', ${userWalletAddress}, ${amount}, NOW())
     `;
 
     return {
