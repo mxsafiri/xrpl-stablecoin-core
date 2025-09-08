@@ -1,29 +1,16 @@
 [build]
-  publish = "frontend/dashboard/out"
-  command = "cd frontend/dashboard && npm install && npm run build"
-  functions = "frontend/dashboard/netlify/functions"
+  base = "frontend/dashboard"
+  publish = "out"
+  command = "npm install && npm run build"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
   DATABASE_URL = "postgresql://neondb_owner:npg_3EJCNTnzM9PF@ep-green-poetry-a26ov6e8-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
   NEXT_PUBLIC_DATABASE_URL = "postgresql://neondb_owner:npg_3EJCNTnzM9PF@ep-green-poetry-a26ov6e8-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-
 # Handle Next.js static export SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-[context.production]
-  command = "cd frontend/dashboard && npm run build"
-
-[context.deploy-preview]
-  command = "cd frontend/dashboard && npm run build"
-
-[context.branch-deploy]
-  command = "cd frontend/dashboard && npm run build"
