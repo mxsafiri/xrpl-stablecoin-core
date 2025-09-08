@@ -1,7 +1,7 @@
 [build]
-  publish = "out"
-  command = "npm install && npm run build"
-  functions = "netlify/functions"
+  publish = "frontend/dashboard/out"
+  command = "cd frontend/dashboard && npm install && npm run build"
+  functions = "frontend/dashboard/netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
