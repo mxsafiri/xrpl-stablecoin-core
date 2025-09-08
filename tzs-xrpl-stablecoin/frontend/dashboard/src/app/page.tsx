@@ -28,6 +28,9 @@ export default function Dashboard() {
   const handleAuthSuccess = (userData: any) => {
     // Authentication handled by AuthContext
     console.log('User authenticated:', userData)
+    console.log('User balance from auth:', userData?.balance)
+    // Force a page reload to clear any cached state
+    window.location.reload()
   }
 
   const renderContent = () => {

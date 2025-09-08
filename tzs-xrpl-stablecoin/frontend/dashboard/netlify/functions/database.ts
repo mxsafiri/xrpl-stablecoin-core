@@ -145,12 +145,18 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
-    // Get live balance from XRPL
+    // Get balance from database (fiat balance, not XRPL tokens)
     if (event.httpMethod === 'GET' && path.startsWith('/balance/')) {
       const walletAddress = path.split('/')[2]
       
       try {
-        const tzsBalance = await xrplService.getTokenBalance(walletAddress)
+        // Get fiat balance from database
+        const userResult = await sql`
+          SELECT balance FROM users WHERE wallet_address = ${walletAddress}
+        `
+        const tzsBalance = userResult.length > 0 ? parseFloat(userResult[0].balance) : 0
+        
+        // Still get XRP balance from XRPL for reference
         const xrpBalance = await xrplService.getXRPBalance(walletAddress)
         
         return {
@@ -354,10 +360,28 @@ export const handler: Handler = async (event, context) => {
       }
 
       if (action === 'getUserTransactions') {
+        // First get user's wallet address
+        const userResult = await sql`
+          SELECT wallet_address FROM users WHERE id = ${user_id}
+        `;
+        
+        if (userResult.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'User not found' })
+          };
+        }
+        
+        const walletAddress = userResult[0].wallet_address;
+        
+        // Get transactions for this wallet
         const result = await sql`
-          SELECT * FROM transactions WHERE user_id = ${user_id}
+          SELECT * FROM transactions 
+          WHERE to_wallet = ${walletAddress} OR from_wallet = ${walletAddress}
           ORDER BY created_at DESC LIMIT 20
         `;
+        
         return {
           statusCode: 200,
           headers,

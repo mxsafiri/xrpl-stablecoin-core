@@ -34,6 +34,8 @@ interface WalletStats {
   pendingDeposits: number;
   totalTransactions: number;
   monthlySpending: number;
+  xrplBalance: number;
+  xrpBalance: number;
 }
 
 export default function UserWallet() {
@@ -44,7 +46,9 @@ export default function UserWallet() {
     totalBalance: 0,
     pendingDeposits: 0,
     totalTransactions: 0,
-    monthlySpending: 0
+    monthlySpending: 0,
+    xrplBalance: 0,
+    xrpBalance: 0
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -63,15 +67,23 @@ export default function UserWallet() {
         currentBalance = typeof user.balance === 'string' ? parseFloat(user.balance) : user.balance;
       }
       
-      console.log('User balance from auth:', user?.balance, 'Parsed:', currentBalance);
+      console.log('UserWallet - User object:', user);
+      console.log('UserWallet - User balance from auth:', user?.balance, 'Parsed:', currentBalance);
       
       // Always try to fetch fresh balance from database for accuracy
-      if (user?.wallet_address) {
+      if (user?.id) {
         try {
-          const balanceResponse = await fetch(`/.netlify/functions/database/balance/${user.wallet_address}`);
+          const balanceResponse = await fetch('/.netlify/functions/database', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'getBalance',
+              user_id: user.id
+            })
+          });
           if (balanceResponse.ok) {
             const balanceData = await balanceResponse.json();
-            const freshBalance = parseFloat(balanceData.tzsBalance || '0');
+            const freshBalance = parseFloat(balanceData.balance || '0');
             console.log('Fresh balance from database:', freshBalance);
             // Use the fresh balance if it's different from cached balance
             if (freshBalance !== currentBalance) {
@@ -83,25 +95,42 @@ export default function UserWallet() {
         }
       }
 
-      // Load user transactions and stats
-      const response = await fetch('/.netlify/functions/database', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'getUserTransactions',
-          user_id: user?.id
-        })
+      // Set the balance immediately regardless of transaction fetch
+      console.log('Setting wallet stats with balance:', currentBalance);
+      setWalletStats({
+        totalBalance: currentBalance,
+        pendingDeposits: 0,
+        totalTransactions: 0,
+        monthlySpending: 0,
+        xrplBalance: 0,
+        xrpBalance: 0
       });
+      console.log('Wallet stats set, current totalBalance should be:', currentBalance);
 
-      if (response.ok) {
-        const data = await response.json();
-        setTransactions(data.transactions || []);
-        setWalletStats({
-          totalBalance: currentBalance,
-          pendingDeposits: data.pendingDeposits || 0,
-          totalTransactions: data.transactions?.length || 0,
-          monthlySpending: data.monthlySpending || 0
+      // Try to load user transactions separately (don't let this block balance display)
+      try {
+        const response = await fetch('/.netlify/functions/database', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'getUserTransactions',
+            user_id: user?.id
+          })
         });
+
+        if (response.ok) {
+          const data = await response.json();
+          setTransactions(data.transactions || []);
+          // Update stats with transaction data but keep the balance
+          setWalletStats(prev => ({
+            ...prev,
+            pendingDeposits: data.pendingDeposits || 0,
+            totalTransactions: data.transactions?.length || 0,
+            monthlySpending: data.monthlySpending || 0
+          }));
+        }
+      } catch (transactionError) {
+        console.log('Could not fetch transactions (balance still displayed):', transactionError);
       }
     } catch (error) {
       console.error('Failed to load wallet data:', error);
@@ -167,44 +196,75 @@ export default function UserWallet() {
               </CardContent>
             </Card>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="p-4">
+            {/* Balance Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="hover:shadow-lg transition-all duration-200 border-0 bg-white shadow-lg">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Pending Deposits</p>
-                      <p className="text-xl font-semibold">{formatCurrency(walletStats.pendingDeposits)}</p>
+                      <p className="text-sm font-medium text-slate-600">Digital Assets</p>
+                      {isLoading ? (
+                        <div className="h-8 w-32 bg-slate-200 rounded-lg animate-pulse"></div>
+                      ) : (
+                        <p className="text-3xl font-bold mt-1 text-blue-600">{formatCurrency(walletStats.totalBalance)}</p>
+                      )}
+                      <p className="text-xs mt-2 text-slate-500">Ready to transfer</p>
                     </div>
-                    <Clock className="h-8 w-8 text-yellow-600" />
+                    <div className="relative">
+                      <div className="p-3 rounded-full bg-blue-50">
+                        <Wallet className="h-6 w-6 text-blue-600" />
+                      </div>
+                      {walletStats.totalBalance > 0 && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-4">
+              <Card className="hover:shadow-lg transition-all duration-200 border-0 bg-white shadow-lg">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Total Transactions</p>
-                      <p className="text-xl font-semibold">{walletStats.totalTransactions}</p>
+                      <p className="text-sm font-medium text-slate-600">Blockchain Balance</p>
+                      {isLoading ? (
+                        <div className="h-8 w-32 bg-slate-200 rounded-lg animate-pulse"></div>
+                      ) : (
+                        <p className="text-3xl font-bold mt-1 text-orange-500">{formatCurrency(walletStats.xrplBalance)}</p>
+                      )}
+                      <p className="text-xs mt-2 text-slate-500">Secured on XRPL</p>
                     </div>
-                    <CreditCard className="h-8 w-8 text-blue-600" />
+                    <div className="relative">
+                      <div className="p-3 rounded-full bg-orange-50">
+                        <CreditCard className="h-6 w-6 text-orange-500" />
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-4">
+              <Card className="hover:shadow-lg transition-all duration-200 border-0 bg-white shadow-lg">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">This Month</p>
-                      <p className="text-xl font-semibold">{formatCurrency(walletStats.monthlySpending)}</p>
+                      <p className="text-sm font-medium text-slate-600">Network Balance</p>
+                      {isLoading ? (
+                        <div className="h-8 w-32 bg-slate-200 rounded-lg animate-pulse"></div>
+                      ) : (
+                        <p className="text-3xl font-bold mt-1 text-green-600">{walletStats.xrpBalance} XRP</p>
+                      )}
+                      <p className="text-xs mt-2 text-slate-500">For transactions</p>
                     </div>
-                    <ArrowUpRight className="h-8 w-8 text-purple-600" />
+                    <div className="relative">
+                      <div className="p-3 rounded-full bg-green-50">
+                        <ArrowUpRight className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
+
 
             {/* Recent Transactions */}
             <Card>
@@ -221,28 +281,40 @@ export default function UserWallet() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {transactions.slice(0, 5).map((tx) => (
-                      <div key={tx.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          {getTransactionIcon(tx.type)}
-                          <div>
-                            <p className="font-medium capitalize">{tx.type}</p>
-                            <p className="text-sm text-gray-600">{tx.description}</p>
+                    {transactions.slice(0, 5).map((tx: any) => {
+                      const isDeposit = tx.from_wallet === 'zenopay' || tx.from_wallet === 'fiat_balance';
+                      const description = tx.metadata?.reference 
+                        ? `ZenoPay Deposit (Ref: ${tx.metadata.reference})`
+                        : tx.from_wallet === 'fiat_balance' 
+                          ? 'Fiat to Token Conversion'
+                          : `${tx.type} transaction`;
+                      
+                      return (
+                        <div key={tx.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                          <div className="flex items-center gap-3">
+                            {getTransactionIcon(tx.type === 'mint' ? 'deposit' : tx.type)}
+                            <div>
+                              <p className="font-medium capitalize">{tx.type === 'mint' && isDeposit ? 'Deposit' : tx.type}</p>
+                              <p className="text-sm text-gray-600">{description}</p>
+                              <p className="text-xs text-gray-400">
+                                {new Date(tx.created_at).toLocaleDateString()} at {new Date(tx.created_at).toLocaleTimeString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-semibold ${isDeposit ? 'text-green-600' : 'text-blue-600'}`}>
+                              +{formatCurrency(parseFloat(tx.amount.toString()))}
+                            </p>
+                            <div className="flex items-center gap-1 justify-end">
+                              {getStatusIcon('completed')}
+                              <Badge variant="default" className="bg-green-100 text-green-800">
+                                Completed
+                              </Badge>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className={`font-semibold ${tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
-                            {tx.type === 'deposit' ? '+' : '-'}{formatCurrency(tx.amount)}
-                          </p>
-                          <div className="flex items-center gap-1">
-                            {getStatusIcon(tx.status)}
-                            <Badge variant={tx.status === 'completed' ? 'default' : 'secondary'}>
-                              {tx.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

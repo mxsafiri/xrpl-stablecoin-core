@@ -1,0 +1,84 @@
+/* TZS Stablecoin 2025 Color System */
+:root {
+  /* Primary Colors */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-500: #0066ff;  /* Electric Blue - Main Primary */
+  --primary-600: #0052cc;
+  --primary-700: #003d99;
+  --primary-900: #001a66;
+
+  /* Accent Colors */
+  --accent-400: #f4a261;   /* Gold */
+  --accent-500: #e76f51;   /* Warm Orange */
+  
+  /* Success/Money Colors */
+  --success-400: #10b981;  /* Prosperity Green */
+  --success-500: #059669;
+  --success-600: #047857;
+
+  /* Background & Surface */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-gradient-start: #0066ff;
+  --bg-gradient-end: #4f46e5;
+
+  /* Text Colors */
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --text-white: #ffffff;
+
+  /* Border & Shadows */
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Interactive States */
+  --hover-overlay: rgb(0 102 255 / 0.1);
+  --active-overlay: rgb(0 102 255 / 0.2);
+}
+
+/* Dark mode support (future) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --border-light: #475569;
+    --border-medium: #64748b;
+  }
+}
+
+/* Utility Classes */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-500), var(--accent-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}

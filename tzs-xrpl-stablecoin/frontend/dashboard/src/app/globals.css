@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import 2025 Color System */
+@import '../styles/colors-2025.css';
+
 @layer base {
   :root {
     --background: 0 0% 100%;
