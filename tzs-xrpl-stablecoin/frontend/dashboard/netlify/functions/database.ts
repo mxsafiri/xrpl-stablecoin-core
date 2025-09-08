@@ -359,6 +359,19 @@ export const handler: Handler = async (event, context) => {
         };
       }
 
+      if (action === 'getBalance') {
+        const result = await sql`
+          SELECT balance FROM users WHERE id = ${user_id}
+        `;
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            balance: result[0]?.balance || '0'
+          })
+        };
+      }
+
       if (action === 'getUserTransactions') {
         // First get user's wallet address
         const userResult = await sql`
