@@ -19,6 +19,7 @@ import {
 import { MultisigPanel } from './MultisigPanel';
 import { TokenOperations } from './TokenOperations';
 import { TransactionMonitor } from './TransactionMonitor';
+import UserManagement from './UserManagement';
 
 interface AdminStats {
   totalUsers: number;
@@ -71,7 +72,17 @@ export default function AdminDashboard() {
 
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
-        setAdminStats(statsData.stats || {});
+        console.log('Admin stats loaded:', statsData);
+        setAdminStats(statsData.stats || {
+          totalUsers: 0,
+          totalBalance: 0,
+          pendingDeposits: 0,
+          pendingOperations: 0,
+          monthlyVolume: 0,
+          totalSupply: 0
+        });
+      } else {
+        console.error('Failed to load admin stats:', statsResponse.status);
       }
 
       // Load pending operations
@@ -83,7 +94,10 @@ export default function AdminDashboard() {
 
       if (opsResponse.ok) {
         const opsData = await opsResponse.json();
+        console.log('Pending operations loaded:', opsData);
         setPendingOperations(opsData.operations || []);
+      } else {
+        console.error('Failed to load pending operations:', opsResponse.status);
       }
     } catch (error) {
       console.error('Failed to load admin data:', error);
@@ -91,6 +105,15 @@ export default function AdminDashboard() {
       setIsLoading(false);
     }
   };
+
+  // Add auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadAdminData();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-TZ', {
@@ -303,21 +326,7 @@ export default function AdminDashboard() {
         return <TransactionMonitor />;
 
       case 'users':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>Manage user accounts and permissions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>User management features coming soon</p>
-                <p className="text-sm">View and manage user accounts, roles, and permissions</p>
-              </div>
-            </CardContent>
-          </Card>
-        );
+        return <UserManagement />;
 
       default:
         return null;

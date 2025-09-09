@@ -85,10 +85,10 @@ export default function UserWallet() {
             const balanceData = await balanceResponse.json();
             const freshBalance = parseFloat(balanceData.balance || '0');
             console.log('Fresh balance from database:', freshBalance);
-            // Use the fresh balance if it's different from cached balance
-            if (freshBalance !== currentBalance) {
-              currentBalance = freshBalance;
-            }
+            // Always use the fresh balance from database
+            currentBalance = freshBalance;
+          } else {
+            console.error('Balance API response not ok:', balanceResponse.status, balanceResponse.statusText);
           }
         } catch (balanceError) {
           console.log('Could not fetch fresh balance:', balanceError);
@@ -138,6 +138,19 @@ export default function UserWallet() {
       setIsLoading(false);
     }
   };
+
+  // Add refresh function for external components to call
+  const refreshWalletData = () => {
+    loadWalletData();
+  };
+
+  // Expose refresh function globally for other components
+  useEffect(() => {
+    (window as any).refreshWalletData = refreshWalletData;
+    return () => {
+      delete (window as any).refreshWalletData;
+    };
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-TZ', {
@@ -196,74 +209,6 @@ export default function UserWallet() {
               </CardContent>
             </Card>
 
-            {/* Balance Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <Card className="hover:shadow-lg transition-all duration-200 border-0 bg-white shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">Digital Assets</p>
-                      {isLoading ? (
-                        <div className="h-8 w-32 bg-slate-200 rounded-lg animate-pulse"></div>
-                      ) : (
-                        <p className="text-3xl font-bold mt-1 text-blue-600">{formatCurrency(walletStats.totalBalance)}</p>
-                      )}
-                      <p className="text-xs mt-2 text-slate-500">Ready to transfer</p>
-                    </div>
-                    <div className="relative">
-                      <div className="p-3 rounded-full bg-blue-50">
-                        <Wallet className="h-6 w-6 text-blue-600" />
-                      </div>
-                      {walletStats.totalBalance > 0 && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-all duration-200 border-0 bg-white shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">Blockchain Balance</p>
-                      {isLoading ? (
-                        <div className="h-8 w-32 bg-slate-200 rounded-lg animate-pulse"></div>
-                      ) : (
-                        <p className="text-3xl font-bold mt-1 text-orange-500">{formatCurrency(walletStats.xrplBalance)}</p>
-                      )}
-                      <p className="text-xs mt-2 text-slate-500">Secured on XRPL</p>
-                    </div>
-                    <div className="relative">
-                      <div className="p-3 rounded-full bg-orange-50">
-                        <CreditCard className="h-6 w-6 text-orange-500" />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-all duration-200 border-0 bg-white shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">Network Balance</p>
-                      {isLoading ? (
-                        <div className="h-8 w-32 bg-slate-200 rounded-lg animate-pulse"></div>
-                      ) : (
-                        <p className="text-3xl font-bold mt-1 text-green-600">{walletStats.xrpBalance} XRP</p>
-                      )}
-                      <p className="text-xs mt-2 text-slate-500">For transactions</p>
-                    </div>
-                    <div className="relative">
-                      <div className="p-3 rounded-full bg-green-50">
-                        <ArrowUpRight className="h-6 w-6 text-green-600" />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
 
 
             {/* Recent Transactions */}

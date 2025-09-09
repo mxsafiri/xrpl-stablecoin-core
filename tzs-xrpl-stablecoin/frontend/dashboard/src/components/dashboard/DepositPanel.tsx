@@ -103,6 +103,13 @@ export default function DepositPanel() {
           amount: '',
           buyer_phone: ''
         }));
+
+        // Refresh wallet data to show updated balance and transactions
+        if ((window as any).refreshWalletData) {
+          setTimeout(() => {
+            (window as any).refreshWalletData();
+          }, 2000); // Wait 2 seconds for deposit to be processed
+        }
       } else {
         setError(result.message || 'Deposit initiation failed');
       }

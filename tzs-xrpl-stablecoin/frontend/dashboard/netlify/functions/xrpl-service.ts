@@ -29,6 +29,32 @@ export class XRPLService {
     }
   }
 
+  async createWallet() {
+    await this.connect()
+    
+    // Generate new wallet
+    const wallet = Wallet.generate()
+    
+    try {
+      // Fund the wallet on testnet
+      await this.client.fundWallet(wallet)
+      
+      return {
+        address: wallet.address,
+        secret: wallet.seed
+      }
+    } catch (error) {
+      console.error('Error creating wallet:', error)
+      // Return wallet even if funding fails (for mainnet)
+      return {
+        address: wallet.address,
+        secret: wallet.seed
+      }
+    } finally {
+      await this.disconnect()
+    }
+  }
+
   // Get account balance for TZS tokens
   async getTokenBalance(walletAddress: string): Promise<number> {
     await this.connect()

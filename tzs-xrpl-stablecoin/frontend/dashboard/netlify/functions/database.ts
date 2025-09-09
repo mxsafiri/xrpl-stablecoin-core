@@ -372,6 +372,210 @@ export const handler: Handler = async (event, context) => {
         };
       }
 
+      if (action === 'getAdminStats') {
+        // Get total users
+        const usersResult = await sql`SELECT COUNT(*) as count FROM users`;
+        const totalUsers = parseInt(usersResult[0]?.count || '0');
+
+        // Get total supply (sum of all user balances)
+        const supplyResult = await sql`SELECT SUM(CAST(balance AS DECIMAL)) as total FROM users`;
+        const totalSupply = parseFloat(supplyResult[0]?.total || '0');
+
+        // Get total user balances
+        const balanceResult = await sql`SELECT SUM(CAST(balance AS DECIMAL)) as total FROM users WHERE role = 'user'`;
+        const totalBalance = parseFloat(balanceResult[0]?.total || '0');
+
+        // Get monthly volume (transactions from this month)
+        const monthlyResult = await sql`
+          SELECT SUM(CAST(amount AS DECIMAL)) as volume 
+          FROM transactions 
+          WHERE created_at >= date_trunc('month', CURRENT_DATE)
+        `;
+        const monthlyVolume = parseFloat(monthlyResult[0]?.volume || '0');
+
+        // Get pending operations count
+        const pendingOpsResult = await sql`SELECT COUNT(*) as count FROM pending_operations WHERE status = 'pending'`;
+        const pendingOperations = parseInt(pendingOpsResult[0]?.count || '0');
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            stats: {
+              totalUsers,
+              totalSupply,
+              totalBalance,
+              monthlyVolume,
+              pendingOperations,
+              pendingDeposits: 0 // Can be enhanced later
+            }
+          })
+        };
+      }
+
+      if (action === 'getPendingOperations') {
+        const result = await sql`
+          SELECT * FROM pending_operations 
+          WHERE status = 'pending' 
+          ORDER BY created_at DESC
+        `;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ operations: result })
+        };
+      }
+
+      if (action === 'getAllUsers') {
+        const result = await sql`
+          SELECT 
+            id,
+            wallet_address,
+            role,
+            balance,
+            username,
+            display_name,
+            email,
+            is_active,
+            created_at,
+            updated_at
+          FROM users 
+          ORDER BY created_at DESC
+        `;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ users: result })
+        };
+      }
+
+      if (action === 'updateUserRole') {
+        const { user_id, new_role } = body;
+        
+        await sql`
+          UPDATE users 
+          SET role = ${new_role}, updated_at = NOW()
+          WHERE id = ${user_id}
+        `;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true })
+        };
+      }
+
+      if (action === 'toggleUserStatus') {
+        const { user_id } = body;
+        
+        await sql`
+          UPDATE users 
+          SET is_active = NOT is_active, updated_at = NOW()
+          WHERE id = ${user_id}
+        `;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true })
+        };
+      }
+
+      if (action === 'approveOperation') {
+        const { operation_id, admin_id } = body;
+        
+        // Add approval record
+        await sql`
+          INSERT INTO operation_approvals (operation_id, approved_by)
+          VALUES (${operation_id}, ${admin_id})
+          ON CONFLICT (operation_id, approved_by) DO NOTHING
+        `;
+        
+        // Update approval count
+        await sql`
+          UPDATE pending_operations 
+          SET current_approvals = (
+            SELECT COUNT(*) FROM operation_approvals WHERE operation_id = ${operation_id}
+          )
+          WHERE id = ${operation_id}
+        `;
+        
+        // Check if operation should be executed
+        const opResult = await sql`
+          SELECT * FROM pending_operations 
+          WHERE id = ${operation_id} AND current_approvals >= required_approvals
+        `;
+        
+        if (opResult.length > 0) {
+          // Execute the operation (simplified - would need full implementation)
+          await sql`
+            UPDATE pending_operations 
+            SET status = 'approved' 
+            WHERE id = ${operation_id}
+          `;
+        }
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true })
+        };
+      }
+
+      if (action === 'updateBalance') {
+        const { user_id, amount, operation } = body;
+        
+        if (operation === 'add') {
+          // Ensure required columns exist for modern auth
+          await sql`
+            ALTER TABLE users 
+            ADD COLUMN IF NOT EXISTS balance DECIMAL(20,8) DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS username VARCHAR(50) UNIQUE,
+            ADD COLUMN IF NOT EXISTS display_name VARCHAR(100),
+            ADD COLUMN IF NOT EXISTS email VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS national_id VARCHAR(50),
+            ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS wallet_secret VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+            ADD COLUMN IF NOT EXISTS admin_level VARCHAR(20) DEFAULT 'user'
+          `;
+          // Add to user balance
+          await sql`
+            UPDATE users 
+            SET balance = CAST(balance AS DECIMAL) + ${amount},
+                updated_at = NOW()
+            WHERE id = ${user_id}
+          `;
+          // Record transaction
+          await sql`
+            INSERT INTO transactions (user_id, type, amount, created_at)
+            VALUES (${user_id}, 'deposit', ${amount}, NOW())
+          `;
+        } else if (operation === 'subtract') {
+          // Subtract from user balance
+          await sql`
+            UPDATE users 
+            SET balance = CAST(balance AS DECIMAL) - ${amount},
+                updated_at = NOW()
+            WHERE id = ${user_id}
+          `;
+          
+          // Record transaction
+          await sql`
+            INSERT INTO transactions (user_id, type, amount, created_at)
+            VALUES (${user_id}, 'send', ${amount}, NOW())
+          `;
+        }
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true })
+        };
+      }
+
       if (action === 'getUserTransactions') {
         // First get user's wallet address
         const userResult = await sql`
@@ -388,18 +592,33 @@ export const handler: Handler = async (event, context) => {
         
         const walletAddress = userResult[0].wallet_address;
         
-        // Get transactions for this wallet
+        // Get transactions for this wallet from database
         const result = await sql`
-          SELECT * FROM transactions 
-          WHERE to_wallet = ${walletAddress} OR from_wallet = ${walletAddress}
+          SELECT 
+            id,
+            type,
+            amount,
+            created_at,
+            'completed' as status
+          FROM transactions 
+          WHERE user_id = ${user_id}
           ORDER BY created_at DESC LIMIT 20
         `;
+        
+        // Format transactions for frontend
+        const formattedTransactions = result.map(tx => ({
+          id: tx.id.toString(),
+          type: tx.type,
+          amount: parseFloat(tx.amount),
+          date: new Date(tx.created_at).toLocaleDateString(),
+          status: tx.status
+        }));
         
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({ 
-            transactions: result,
+            transactions: formattedTransactions,
             pendingDeposits: 0,
             monthlySpending: 0
           })

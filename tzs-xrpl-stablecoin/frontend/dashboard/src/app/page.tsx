@@ -1,68 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Sidebar } from '@/components/layout/Sidebar'
-import { Header } from '@/components/layout/Header'
-import DashboardOverview from '@/components/dashboard/DashboardOverview'
-import { TokenOperations } from '@/components/dashboard/TokenOperations'
-import { WalletManagement } from '@/components/dashboard/WalletManagement'
-import { TransactionMonitor } from '@/components/dashboard/TransactionMonitor'
-import { MultisigPanel } from '@/components/dashboard/MultisigPanel'
-import DepositPanel from '@/components/dashboard/DepositPanel'
-import UserWallet from '@/components/dashboard/UserWallet'
 import { useAuth } from '@/contexts/AuthContext'
+import UserWallet from '@/components/dashboard/UserWallet'
+import AdminDashboard from '@/components/dashboard/AdminDashboard'
+import ModernWalletDashboard from '@/components/wallet/ModernWalletDashboard'
 import WalletAuth from '@/components/auth/WalletAuth'
-
-type ActiveTab = 'overview' | 'tokens' | 'wallets' | 'transactions' | 'multisig' | 'deposit'
+import ModernAuth from '@/components/auth/ModernAuth'
 
 export default function Dashboard() {
-  const { user, isAuthenticated, isAdmin, loading } = useAuth()
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview')
-  const [isConnected, setIsConnected] = useState(false)
-
-  useEffect(() => {
-    // Initialize XRPL connection
-    setIsConnected(true)
-  }, [])
+  const { user, isAuthenticated, loading } = useAuth()
+  const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user')
 
   const handleAuthSuccess = (userData: any) => {
-    // Authentication handled by AuthContext
     console.log('User authenticated:', userData)
-    console.log('User balance from auth:', userData?.balance)
-    // Force a page reload to clear any cached state
     window.location.reload()
-  }
-
-  const renderContent = () => {
-    if (isAdmin) {
-      // Admin dashboard content
-      switch (activeTab) {
-        case 'overview':
-          return <DashboardOverview />
-        case 'tokens':
-          return <TokenOperations />
-        case 'wallets':
-          return <WalletManagement />
-        case 'transactions':
-          return <TransactionMonitor />
-        case 'multisig':
-          return <MultisigPanel />
-        default:
-          return <DashboardOverview />
-      }
-    } else {
-      // User wallet content
-      switch (activeTab) {
-        case 'overview':
-          return <UserWallet />
-        case 'deposit':
-          return <DepositPanel />
-        case 'transactions':
-          return <TransactionMonitor />
-        default:
-          return <UserWallet />
-      }
-    }
   }
 
   if (loading) {
@@ -73,19 +25,42 @@ export default function Dashboard() {
     )
   }
 
-  if (!isAuthenticated) {
-    return <WalletAuth onAuthSuccess={handleAuthSuccess} />
+  if (!isAuthenticated || !user) {
+    return <ModernAuth />
   }
 
-  return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar activeTab={activeTab} onTabChange={(tab: string) => setActiveTab(tab as ActiveTab)} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header isConnected={isConnected} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-          {renderContent()}
-        </main>
+  // For admin users, show a simple toggle to access admin panel
+  if (user.role === 'admin' && activeTab === 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">TZS Admin Panel</h1>
+            <button
+              onClick={() => setActiveTab('user')}
+              className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
+            >
+              ← Back to Wallet
+            </button>
+          </div>
+          <AdminDashboard />
+        </div>
       </div>
+    )
+  }
+
+  // Default: Full-screen modern wallet with admin access button if needed
+  return (
+    <div className="relative">
+      <ModernWalletDashboard />
+      {user.role === 'admin' && (
+        <button
+          onClick={() => setActiveTab('admin')}
+          className="fixed top-4 right-4 z-30 bg-white/20 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-sm border border-white/20 hover:bg-white/30 transition-all"
+        >
+          Admin Panel
+        </button>
+      )}
     </div>
   )
 }

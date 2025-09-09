@@ -1,7 +1,11 @@
 import { Handler } from '@netlify/functions'
 import { neon } from '@neondatabase/serverless'
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+import { xrplService } from './xrpl-service'
 
 const sql = neon(process.env.DATABASE_URL!)
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
 export const handler: Handler = async (event, context) => {
   const headers = {
@@ -15,7 +19,6 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Test database connection first
     if (!process.env.DATABASE_URL) {
       return {
         statusCode: 500,
@@ -25,6 +28,187 @@ export const handler: Handler = async (event, context) => {
     }
 
     const body = JSON.parse(event.body || '{}')
+    const path = event.path.replace('/.netlify/functions/auth', '')
+
+    // Modern signup endpoint
+    if (event.httpMethod === 'POST' && path === '/signup') {
+      const { fullName, username, nationalId, email, password } = body
+
+      // Validate required fields
+      if (!fullName || !username || !nationalId || !email || !password) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'All fields are required' })
+        }
+      }
+
+      // Validate username format (Name.TZS)
+      if (!username.endsWith('.TZS') || username.length < 5) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Username must be in format Name.TZS' })
+        }
+      }
+
+      // Check if username already exists
+      const existingUser = await sql`
+        SELECT id FROM users WHERE username = ${username}
+      `
+      if (existingUser.length > 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Username already taken' })
+        }
+      }
+
+      // Check if email already exists
+      const existingEmail = await sql`
+        SELECT id FROM users WHERE email = ${email}
+      `
+      if (existingEmail.length > 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Email already registered' })
+        }
+      }
+
+      // Create XRPL wallet for user
+      const wallet = await xrplService.createWallet()
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 12)
+
+      // Create user in database
+      const result = await sql`
+        INSERT INTO users (
+          username, 
+          display_name, 
+          email, 
+          national_id,
+          password_hash,
+          wallet_address,
+          wallet_secret,
+          role,
+          balance,
+          is_active,
+          created_at
+        ) 
+        VALUES (
+          ${username}, 
+          ${fullName}, 
+          ${email}, 
+          ${nationalId},
+          ${hashedPassword},
+          ${wallet.address},
+          ${wallet.secret},
+          'user',
+          0,
+          true,
+          NOW()
+        ) 
+        RETURNING id, username, display_name, email, wallet_address, role, balance, is_active
+      `
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          userId: result[0].id, 
+          username: result[0].username,
+          role: result[0].role 
+        },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      )
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          token,
+          user: result[0]
+        })
+      }
+    }
+
+    // Modern login endpoint
+    if (event.httpMethod === 'POST' && path === '/login') {
+      const { username, password } = body
+
+      if (!username || !password) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Username and password are required' })
+        }
+      }
+
+      // Find user by username
+      const result = await sql`
+        SELECT id, username, display_name, email, password_hash, wallet_address, role, balance, is_active
+        FROM users 
+        WHERE username = ${username}
+      `
+
+      if (result.length === 0) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'Invalid username or password' })
+        }
+      }
+
+      const user = result[0]
+
+      // Check if account is active
+      if (!user.is_active) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'Account is deactivated' })
+        }
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.password_hash)
+      if (!isValidPassword) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'Invalid username or password' })
+        }
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          userId: user.id, 
+          username: user.username,
+          role: user.role 
+        },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      )
+
+      // Remove password hash from response
+      const { password_hash, ...userResponse } = user
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          token,
+          user: userResponse
+        })
+      }
+    }
+
+    // Legacy wallet-based auth (keeping for backward compatibility)
     const { walletAddress, action, username, displayName, email } = body
 
     if (event.httpMethod === 'POST' && action === 'login') {
