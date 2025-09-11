@@ -14,6 +14,11 @@ import {
   RectangleStackIcon
 } from '@heroicons/react/24/outline'
 import DepositModal from './DepositModal'
+import SendModal from './SendModal'
+import SettingsPanel from './SettingsPanel'
+import TransactionsPanel from './TransactionsPanel'
+import WalletsPanel from './WalletsPanel'
+import AppsPanel from './AppsPanel'
 
 interface Transaction {
   id: string
@@ -41,6 +46,7 @@ export default function ModernWalletDashboard() {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false)
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('home')
 
   useEffect(() => {
@@ -135,29 +141,60 @@ export default function ModernWalletDashboard() {
     )
   }
 
-  const handleDeposit = async (amount: number) => {
+  const handleDeposit = async (amount: number, phone: string) => {
     try {
-      // Update user balance in database
-      const response = await fetch('/.netlify/functions/database', {
+      // Initiate ZenoPay mobile money deposit
+      const response = await fetch('/.netlify/functions/deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'updateBalance',
           user_id: user?.id,
           amount: amount,
-          operation: 'add'
+          buyer_email: user?.email || `${user?.username}@tzs.com`,
+          buyer_name: user?.display_name || user?.username || 'TZS User',
+          buyer_phone: phone
         })
       })
       
       if (response.ok) {
-        // Refresh wallet data after successful deposit
-        await loadWalletData()
-        setIsDepositModalOpen(false)
+        const data = await response.json()
+        console.log('Deposit initiated successfully:', data)
+        // Don't close modal immediately - let user see success message
+        // Modal will close after showing success state
       } else {
-        throw new Error('Deposit failed')
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Deposit failed')
       }
     } catch (error) {
       console.error('Deposit error:', error)
+      throw error
+    }
+  }
+
+  const handleSend = async (recipient: string, amount: number, note?: string) => {
+    try {
+      const response = await fetch('/.netlify/functions/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender_id: user?.id,
+          recipient_username: recipient,
+          amount: amount,
+          note: note
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Transfer completed successfully:', data)
+        // Reload wallet data to reflect new balance
+        await loadWalletData()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Transfer failed')
+      }
+    } catch (error) {
+      console.error('Transfer error:', error)
       throw error
     }
   }
@@ -168,6 +205,23 @@ export default function ModernWalletDashboard() {
       <div className="h-3 bg-white/10 rounded w-3/4"></div>
     </div>
   )
+
+  // Show different panels based on active tab
+  if (activeTab === 'settings') {
+    return <SettingsPanel onBack={() => setActiveTab('home')} />
+  }
+  
+  if (activeTab === 'transactions') {
+    return <TransactionsPanel onBack={() => setActiveTab('home')} />
+  }
+  
+  if (activeTab === 'wallets') {
+    return <WalletsPanel onBack={() => setActiveTab('home')} />
+  }
+  
+  if (activeTab === 'apps') {
+    return <AppsPanel onBack={() => setActiveTab('home')} />
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a2332] to-[#1e3a5f] relative overflow-hidden">
@@ -186,7 +240,7 @@ export default function ModernWalletDashboard() {
             Welcome back,<br />{user?.display_name || user?.username || 'Victor'} 👋
           </h1>
           <p className="text-white/50 text-[14px] leading-[18px] font-light">
-            Manage your TZS Stablecoin wallet with ease.
+            Manage your money with ease.
           </p>
         </div>
 
@@ -207,13 +261,19 @@ export default function ModernWalletDashboard() {
           {/* Quick Actions */}
           <div className="grid grid-cols-3 gap-3">
             <button 
-              onClick={() => setIsDepositModalOpen(true)}
+              onClick={() => {
+                console.log('Deposit button clicked, opening modal...');
+                setIsDepositModalOpen(true);
+              }}
               className="backdrop-blur-lg bg-white/[0.12] hover:bg-white/[0.18] rounded-[16px] px-4 py-3 transition-all duration-200 border border-white/[0.15] shadow-[0_4px_16px_0_rgba(31,38,135,0.2)] flex items-center justify-center space-x-2"
             >
               <ArrowDownIcon className="w-4 h-4 text-white" />
               <span className="text-white text-[13px] font-medium">Deposit</span>
             </button>
-            <button className="backdrop-blur-lg bg-white/[0.12] hover:bg-white/[0.18] rounded-[16px] px-4 py-3 transition-all duration-200 border border-white/[0.15] shadow-[0_4px_16px_0_rgba(31,38,135,0.2)] flex items-center justify-center space-x-2">
+            <button 
+              onClick={() => setIsSendModalOpen(true)}
+              className="backdrop-blur-lg bg-white/[0.12] hover:bg-white/[0.18] rounded-[16px] px-4 py-3 transition-all duration-200 border border-white/[0.15] shadow-[0_4px_16px_0_rgba(31,38,135,0.2)] flex items-center justify-center space-x-2"
+            >
               <ArrowUpIcon className="w-4 h-4 text-white" />
               <span className="text-white text-[13px] font-medium">Send</span>
             </button>
@@ -330,6 +390,14 @@ export default function ModernWalletDashboard() {
         isOpen={isDepositModalOpen}
         onClose={() => setIsDepositModalOpen(false)}
         onDeposit={handleDeposit}
+      />
+
+      {/* Send Modal */}
+      <SendModal
+        isOpen={isSendModalOpen}
+        onClose={() => setIsSendModalOpen(false)}
+        onSend={handleSend}
+        currentBalance={walletStats.totalBalance}
       />
     </div>
   )

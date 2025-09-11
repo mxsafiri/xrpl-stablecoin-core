@@ -15,12 +15,14 @@ interface AuthFormData {
 }
 
 export default function ModernAuth() {
-  const { modernLogin, modernSignup } = useAuth()
+  const { modernLogin, modernSignup, login } = useAuth()
   const [isLogin, setIsLogin] = useState(true)
+  const [showLegacyLogin, setShowLegacyLogin] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [legacyWalletAddress, setLegacyWalletAddress] = useState('')
   const [formData, setFormData] = useState<AuthFormData>({
     fullName: '',
     username: '',
@@ -38,18 +40,25 @@ export default function ModernAuth() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     
-    // Auto-format username to Name.TZS format
+    // Handle username input - allow free typing, only clean up invalid characters
     if (name === 'username') {
-      let formatted = value.replace(/[^a-zA-Z]/g, '') // Remove non-letters
-      if (formatted && !formatted.includes('.TZS')) {
-        formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1).toLowerCase()
-        if (formatted.length > 0) {
-          formatted = formatted + '.TZS'
-        }
-      }
-      setFormData(prev => ({ ...prev, [name]: formatted }))
+      // Allow letters, dots, and preserve existing .TZS
+      let cleanValue = value.replace(/[^a-zA-Z.]/g, '')
+      setFormData(prev => ({ ...prev, [name]: cleanValue }))
     } else {
       setFormData(prev => ({ ...prev, [name]: value }))
+    }
+  }
+
+  const handleUsernameBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    if (value && !value.includes('.TZS')) {
+      // Auto-format when user leaves the field if they haven't included .TZS
+      const cleanValue = value.replace(/[^a-zA-Z]/g, '')
+      if (cleanValue.length > 0) {
+        const formatted = cleanValue.charAt(0).toUpperCase() + cleanValue.slice(1).toLowerCase() + '.TZS'
+        setFormData(prev => ({ ...prev, username: formatted }))
+      }
     }
   }
 
@@ -159,7 +168,7 @@ export default function ModernAuth() {
                       name="fullName"
                       value={formData.fullName}
                       onChange={handleInputChange}
-                      placeholder="Victor Muhagachi"
+                      placeholder="Your Full Name"
                       required={!isLogin}
                       className="w-full bg-white/10 border border-white/20 rounded-[16px] pl-12 pr-4 py-4 text-white text-[16px] placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#2A9D9F] focus:border-transparent"
                     />
@@ -180,13 +189,14 @@ export default function ModernAuth() {
                       name="username"
                       value={formData.username}
                       onChange={handleInputChange}
-                      placeholder="Victor.TZS"
+                      onBlur={handleUsernameBlur}
+                      placeholder="Name.TZS"
                       required={!isLogin}
                       className="w-full bg-white/10 border border-white/20 rounded-[16px] pl-12 pr-4 py-4 text-white text-[16px] placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#2A9D9F] focus:border-transparent"
                     />
                   </div>
                   <p className="text-white/40 text-[12px] mt-2">
-                    Your unique TZS identity (e.g., Victor.TZS)
+                    Your unique TZS identity (e.g., Name.TZS)
                   </p>
                 </div>
 
@@ -224,7 +234,7 @@ export default function ModernAuth() {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      placeholder="victor@example.com"
+                      placeholder="name@example.com"
                       required={!isLogin}
                       className="w-full bg-white/10 border border-white/20 rounded-[16px] pl-12 pr-4 py-4 text-white text-[16px] placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#2A9D9F] focus:border-transparent"
                     />
@@ -250,7 +260,7 @@ export default function ModernAuth() {
                       name="username"
                       value={signInData.username}
                       onChange={handleSignInInputChange}
-                      placeholder="Victor.TZS"
+                      placeholder="Name.TZS"
                       required
                       className="w-full bg-white/10 border border-white/20 rounded-[16px] pl-12 pr-4 py-4 text-white text-[16px] placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#2A9D9F] focus:border-transparent"
                     />

@@ -10,6 +10,41 @@ interface ZenoWebhookPayload {
   metadata?: any;
 }
 
+// Create notification for deposit status updates
+async function createNotification(order_id: string, status: 'success' | 'failed', payload: ZenoWebhookPayload) {
+  try {
+    // Get deposit and user info
+    const depositResult = await sql`
+      SELECT pd.*, u.id as user_id, u.username, u.buyer_phone
+      FROM pending_deposits pd
+      LEFT JOIN users u ON pd.user_id::text = u.id::text
+      WHERE pd.order_id = ${order_id}
+    `;
+
+    if (depositResult.length > 0) {
+      const deposit = depositResult[0];
+      const message = status === 'success' 
+        ? `✅ Deposit of ${deposit.amount} TZS completed successfully!`
+        : `❌ Deposit of ${deposit.amount} TZS failed. Please try again.`;
+
+      // Store notification in database
+      await sql`
+        INSERT INTO notifications (
+          id, user_id, title, message, type, status, created_at
+        ) VALUES (
+          ${require('crypto').randomUUID()}, ${deposit.user_id}, 
+          ${status === 'success' ? 'Deposit Successful' : 'Deposit Failed'},
+          ${message}, 'deposit', 'unread', NOW()
+        )
+      `;
+
+      console.log(`Notification created for user ${deposit.username}: ${message}`);
+    }
+  } catch (error) {
+    console.error('Failed to create notification:', error);
+  }
+}
+
 export const handler: Handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -45,6 +80,29 @@ export const handler: Handler = async (event, context) => {
     const { order_id, payment_status, reference } = payload;
 
     console.log(`ZenoPay webhook received:`, JSON.stringify(payload, null, 2));
+
+    // Handle different payment statuses
+    if (payment_status === 'FAILED' || payment_status === 'CANCELLED' || payment_status === 'REJECTED') {
+      // Update deposit status to failed
+      await sql`
+        UPDATE pending_deposits 
+        SET status = 'failed', reference = ${reference}, updated_at = NOW()
+        WHERE order_id = ${order_id}
+      `;
+
+      // Create notification for failed payment
+      await createNotification(order_id, 'failed', payload);
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ 
+          success: true,
+          message: 'Payment failed, deposit marked as failed',
+          status: payment_status 
+        })
+      };
+    }
 
     // Only process completed payments
     if (payment_status !== 'COMPLETED') {
@@ -116,6 +174,35 @@ export const handler: Handler = async (event, context) => {
       WHERE id = ${deposit.user_id}
     `;
 
+    // Mint actual XRPL tokens for the deposit
+    let tokenMintResult = null;
+    try {
+      console.log(`Attempting to mint ${stablecoinAmount} TZS tokens for user ${user.wallet_address}`);
+      
+      const mintResponse = await fetch('https://nedalabs.netlify.app/.netlify/functions/mint-tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: stablecoinAmount,
+          destinationWallet: user.wallet_address,
+          reference: `deposit-${order_id}`,
+          requestedBy: 'zenopay-webhook'
+        })
+      });
+
+      if (mintResponse.ok) {
+        tokenMintResult = await mintResponse.json();
+        console.log(`Successfully minted ${stablecoinAmount} TZS tokens:`, tokenMintResult);
+      } else {
+        const errorData = await mintResponse.json();
+        console.error('Token minting failed:', errorData);
+        // Continue with database credit even if minting fails
+      }
+    } catch (mintError) {
+      console.error('Token minting error:', mintError);
+      // Continue with database credit even if minting fails
+    }
+
     // Log successful deposit transaction
     await sql`
       INSERT INTO transactions (
@@ -123,9 +210,12 @@ export const handler: Handler = async (event, context) => {
       ) VALUES (
         ${require('crypto').randomUUID()}, ${deposit.user_id}, 'deposit', 
         ${stablecoinAmount}, 'completed', ${order_id}, NOW(),
-        ${'TZS deposit via ZenoPay - balance credited'}
+        ${tokenMintResult ? 'TZS deposit via ZenoPay - tokens minted and balance credited' : 'TZS deposit via ZenoPay - balance credited (token minting pending)'}
       )
     `;
+
+    // Create success notification
+    await createNotification(order_id, 'success', payload);
 
     console.log(`Successfully credited ${stablecoinAmount} TZS to user ${user.username || user.wallet_address} balance`);
 

@@ -24,8 +24,8 @@ export const handler: Handler = async (event, context) => {
       const { amount, destinationWallet, reference, requestedBy } = body
       
       try {
-        // Calculate USD value (assuming TZS = $1 for now, should use real price feed)
-        const usdValue = amount * 1.0
+        // Calculate USD value (1 USD = ~2600 TZS)
+        const usdValue = amount / 2600
         
         // Get multi-sig threshold from settings
         const thresholdResult = await sql`
@@ -87,8 +87,8 @@ export const handler: Handler = async (event, context) => {
       const { amount, sourceWallet, reference, requestedBy } = body
       
       try {
-        // Calculate USD value (assuming TZS = $1 for now, should use real price feed)
-        const usdValue = amount * 1.0
+        // Calculate USD value (1 USD = ~2600 TZS)
+        const usdValue = amount / 2600
         
         // Get multi-sig threshold from settings
         const thresholdResult = await sql`

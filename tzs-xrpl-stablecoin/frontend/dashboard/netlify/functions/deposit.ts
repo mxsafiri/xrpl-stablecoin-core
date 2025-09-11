@@ -64,7 +64,12 @@ class ZenoPayService {
   }
 
   isValidTanzanianPhone(phone: string): boolean {
-    const phoneRegex = /^07\d{8}$/;
+    // Tanzania mobile number formats:
+    // Vodacom (M-Pesa): 074, 075, 076
+    // Airtel: 068, 069, 078
+    // Tigo: 065, 067, 071
+    // Halotel: 062
+    const phoneRegex = /^0(62|65|67|68|69|71|74|75|76|78)\d{7}$/;
     return phoneRegex.test(phone);
   }
 }

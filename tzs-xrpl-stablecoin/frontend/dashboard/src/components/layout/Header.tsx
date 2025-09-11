@@ -1,7 +1,8 @@
 'use client'
 
-import { Bell, Settings, User, LogOut } from 'lucide-react'
+import { Settings, User, LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import NotificationBell from '../notifications/NotificationBell'
 
 interface HeaderProps {
   isConnected: boolean
@@ -36,9 +37,7 @@ export function Header({ isConnected }: HeaderProps) {
             </div>
           </div>
 
-          <button className="p-2 text-gray-400 hover:text-gray-600">
-            <Bell className="w-5 h-5" />
-          </button>
+          <NotificationBell />
           <button className="p-2 text-gray-400 hover:text-gray-600">
             <Settings className="w-5 h-5" />
           </button>

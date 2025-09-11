@@ -14,6 +14,7 @@ interface User {
   email?: string
   national_id?: string
   is_active?: boolean
+  wallet_secret?: string
 }
 
 interface AuthContextType {
