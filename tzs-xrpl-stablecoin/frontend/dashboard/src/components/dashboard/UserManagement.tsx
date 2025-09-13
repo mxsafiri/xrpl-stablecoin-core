@@ -41,9 +41,13 @@ export default function UserManagement() {
   const loadUsers = async () => {
     setIsLoading(true);
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/database', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ action: 'getAllUsers' })
       });
 
@@ -62,9 +66,13 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/database', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ 
           action: 'updateUserRole', 
           user_id: userId, 
@@ -82,9 +90,13 @@ export default function UserManagement() {
 
   const toggleUserStatus = async (userId: string) => {
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/database', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ 
           action: 'toggleUserStatus', 
           user_id: userId 

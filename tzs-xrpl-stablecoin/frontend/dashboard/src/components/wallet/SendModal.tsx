@@ -63,9 +63,13 @@ export default function SendModal({ isOpen, onClose, onSend, currentBalance }: S
 
     setIsSearching(true)
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/search-users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ query })
       })
 

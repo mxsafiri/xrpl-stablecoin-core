@@ -35,9 +35,13 @@ export default function ModernWallet() {
       // Fetch fresh balance from database
       if (user?.id) {
         try {
+          const token = localStorage.getItem('auth_token')
           const balanceResponse = await fetch('/.netlify/functions/database', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({
               action: 'getBalance',
               user_id: user.id

@@ -32,9 +32,13 @@ export default function NotificationBell() {
     if (!user?.id) return;
 
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/notifications', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           action: 'getNotifications',
           user_id: user.id
@@ -53,9 +57,13 @@ export default function NotificationBell() {
 
   const markAsRead = async (notificationId: string) => {
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/notifications', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           action: 'markAsRead',
           notification_id: notificationId
@@ -75,12 +83,16 @@ export default function NotificationBell() {
 
     setIsLoading(true);
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/notifications', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           action: 'markAllAsRead',
-          user_id: user.id
+          user_id: user?.id
         })
       });
 

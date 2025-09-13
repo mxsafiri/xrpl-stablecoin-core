@@ -41,9 +41,13 @@ export default function TransactionsPanel({ onBack }: TransactionsPanelProps) {
     
     setIsLoading(true)
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/database', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           action: 'getUserTransactions',
           user_id: user.id

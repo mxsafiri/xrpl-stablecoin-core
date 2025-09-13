@@ -73,22 +73,26 @@ export default function UserWallet() {
       // Always try to fetch fresh balance from database for accuracy
       if (user?.id) {
         try {
-          const balanceResponse = await fetch('/.netlify/functions/database', {
+          const token = localStorage.getItem('auth_token')
+          const response = await fetch('/.netlify/functions/database', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({
               action: 'getBalance',
               user_id: user.id
             })
           });
-          if (balanceResponse.ok) {
-            const balanceData = await balanceResponse.json();
+          if (response.ok) {
+            const balanceData = await response.json();
             const freshBalance = parseFloat(balanceData.balance || '0');
             console.log('Fresh balance from database:', freshBalance);
             // Always use the fresh balance from database
             currentBalance = freshBalance;
           } else {
-            console.error('Balance API response not ok:', balanceResponse.status, balanceResponse.statusText);
+            console.error('Balance API response not ok:', response.status, response.statusText);
           }
         } catch (balanceError) {
           console.log('Could not fetch fresh balance:', balanceError);
@@ -109,17 +113,21 @@ export default function UserWallet() {
 
       // Try to load user transactions separately (don't let this block balance display)
       try {
-        const response = await fetch('/.netlify/functions/database', {
+        const token = localStorage.getItem('auth_token')
+        const transactionResponse = await fetch('/.netlify/functions/database', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             action: 'getUserTransactions',
             user_id: user?.id
           })
         });
 
-        if (response.ok) {
-          const data = await response.json();
+        if (transactionResponse.ok) {
+          const data = await transactionResponse.json();
           setTransactions(data.transactions || []);
           // Update stats with transaction data but keep the balance
           setWalletStats(prev => ({

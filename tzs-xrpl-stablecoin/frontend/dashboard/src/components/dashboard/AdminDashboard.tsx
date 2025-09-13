@@ -64,9 +64,13 @@ export default function AdminDashboard() {
     setIsLoading(true);
     try {
       // Load admin statistics
+      const token = localStorage.getItem('auth_token')
       const statsResponse = await fetch('/.netlify/functions/database', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ action: 'getAdminStats' })
       });
 
@@ -88,7 +92,10 @@ export default function AdminDashboard() {
       // Load pending operations
       const opsResponse = await fetch('/.netlify/functions/database', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ action: 'getPendingOperations' })
       });
 
@@ -125,9 +132,13 @@ export default function AdminDashboard() {
 
   const handleApproveOperation = async (operationId: string) => {
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch(`/.netlify/functions/database`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           action: 'approveOperation',
           operation_id: operationId,

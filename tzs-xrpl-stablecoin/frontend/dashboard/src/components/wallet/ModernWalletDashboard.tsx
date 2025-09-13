@@ -62,9 +62,13 @@ export default function ModernWalletDashboard() {
       let currentBalance = 0
       if (user?.id) {
         try {
+          const token = localStorage.getItem('auth_token')
           const balanceResponse = await fetch('/.netlify/functions/database', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({
               action: 'getBalance',
               user_id: user.id
@@ -88,17 +92,21 @@ export default function ModernWalletDashboard() {
 
       // Load transactions
       try {
-        const response = await fetch('/.netlify/functions/database', {
+        const token = localStorage.getItem('auth_token')
+        const transactionResponse = await fetch('/.netlify/functions/database', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             action: 'getUserTransactions',
             user_id: user?.id
           })
         })
 
-        if (response.ok) {
-          const data = await response.json()
+        if (transactionResponse.ok) {
+          const data = await transactionResponse.json()
           const formattedTransactions = (data.transactions || []).map((tx: any) => ({
             id: tx.id,
             type: tx.type,
