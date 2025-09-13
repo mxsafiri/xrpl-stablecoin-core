@@ -3,16 +3,18 @@ import { neon } from '@neondatabase/serverless'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { xrplService } from './xrpl-service'
+import { getSecureCorsHeaders, GENERIC_ERRORS, createSecurityLog } from './cors-config'
 
 const sql = neon(process.env.DATABASE_URL!)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+// Fail fast if JWT_SECRET is not configured - security requirement
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required')
+}
+
+const JWT_SECRET = process.env.JWT_SECRET
 
 export const handler: Handler = async (event, context) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  }
+  const headers = getSecureCorsHeaders(event.headers.origin)
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' }
@@ -36,10 +38,11 @@ export const handler: Handler = async (event, context) => {
 
       // Validate required fields
       if (!fullName || !username || !nationalId || !email || !password) {
+        console.log(createSecurityLog('signup_missing_fields', { username, email }));
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ error: 'All fields are required' })
+          body: JSON.stringify({ error: GENERIC_ERRORS.BAD_REQUEST })
         }
       }
 
@@ -323,40 +326,8 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
-    if (event.httpMethod === 'POST' && action === 'admin-login') {
-      // Admin login with predefined admin wallet
-      const adminAddress = 'rAdminWalletAddressForTesting123456789'
-      const result = await sql`SELECT * FROM users WHERE wallet_address = ${adminAddress} AND role = 'admin'`
-      
-      if (result.length === 0) {
-        // Create admin user if doesn't exist
-        const insertResult = await sql`
-          INSERT INTO users (wallet_address, role, balance, created_at) 
-          VALUES (${adminAddress}, 'admin', 0, NOW()) 
-          RETURNING *
-        `
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            user: insertResult[0],
-            isAdmin: true
-          })
-        }
-      }
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          user: result[0],
-          isAdmin: true
-        })
-      }
-    }
+    // REMOVED: Admin backdoor - security vulnerability fixed
+    // Admin access must go through proper authentication channels
 
     return {
       statusCode: 404,

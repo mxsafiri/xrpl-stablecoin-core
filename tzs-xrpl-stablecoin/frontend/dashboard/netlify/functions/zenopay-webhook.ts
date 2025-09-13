@@ -1,5 +1,7 @@
 import { Handler } from '@netlify/functions';
 import { neon } from '@neondatabase/serverless';
+import { verifyZenoPayWebhook, validateZenoPayload, logSecurityEvent } from './webhook-security';
+import { getSecureCorsHeaders } from './cors-config';
 
 const sql = neon(process.env.DATABASE_URL!);
 
@@ -46,11 +48,7 @@ async function createNotification(order_id: string, status: 'success' | 'failed'
 }
 
 export const handler: Handler = async (event, context) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, x-api-key',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  };
+  const headers = getSecureCorsHeaders(event.headers.origin);
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -65,21 +63,73 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Optional webhook authentication (ZenoPay might not send API key)
-    const apiKey = event.headers['x-api-key'] || event.headers['X-API-Key'];
-    if (apiKey && apiKey !== process.env.ZENOPAY_API_KEY) {
-      console.error('Invalid API key in webhook');
+    // CRITICAL SECURITY FIX: HMAC signature verification
+    const signature = event.headers['x-signature'] || event.headers['X-Signature'];
+    const webhookSecret = process.env.ZENOPAY_WEBHOOK_SECRET;
+    
+    if (!webhookSecret) {
+      logSecurityEvent('webhook_no_secret', { source: 'zenopay' }, 'error');
       return {
-        statusCode: 401,
+        statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'Unauthorized' })
+        body: JSON.stringify({ error: 'Webhook secret not configured' })
       };
     }
 
+    // Verify webhook authenticity
+    if (signature) {
+      try {
+        const isValid = verifyZenoPayWebhook(event.body || '', signature, webhookSecret);
+        if (!isValid) {
+          logSecurityEvent('webhook_invalid_signature', { 
+            source: 'zenopay',
+            signature: signature?.substring(0, 10) + '...' 
+          }, 'error');
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ error: 'Invalid webhook signature' })
+          };
+        }
+      } catch (error: any) {
+        logSecurityEvent('webhook_verification_error', { 
+          source: 'zenopay',
+          error: error.message 
+        }, 'error');
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: 'Webhook verification failed' })
+        };
+      }
+    } else {
+      // Log missing signature but allow for backward compatibility
+      logSecurityEvent('webhook_no_signature', { source: 'zenopay' }, 'warning');
+    }
+
     const payload: ZenoWebhookPayload = JSON.parse(event.body || '{}');
+    
+    // Validate payload structure
+    if (!validateZenoPayload(payload)) {
+      logSecurityEvent('webhook_invalid_payload', { 
+        source: 'zenopay',
+        payload: payload 
+      }, 'error');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid webhook payload' })
+      };
+    }
+
     const { order_id, payment_status, reference } = payload;
 
-    console.log(`ZenoPay webhook received:`, JSON.stringify(payload, null, 2));
+    logSecurityEvent('webhook_received', {
+      source: 'zenopay',
+      order_id,
+      payment_status,
+      has_signature: !!signature
+    }, 'info');
 
     // Handle different payment statuses
     if (payment_status === 'FAILED' || payment_status === 'CANCELLED' || payment_status === 'REJECTED') {

@@ -1,15 +1,18 @@
 import { Handler } from '@netlify/functions'
 import { neon } from '@neondatabase/serverless'
 import { xrplService } from './xrpl-service'
+import { getSecureCorsHeaders, GENERIC_ERRORS, createSecurityLog } from './cors-config'
+import { verifyJWT, checkRateLimit } from './jwt-middleware'
 
-const sql = neon(process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_3EJCNTnzM9PF@ep-green-poetry-a26ov6e8-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require')
+// Fail fast if DATABASE_URL is not configured - security requirement
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required')
+}
+
+const sql = neon(process.env.DATABASE_URL)
 
 export const handler: Handler = async (event, context) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  }
+  const headers = getSecureCorsHeaders(event.headers.origin)
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' }
@@ -18,6 +21,27 @@ export const handler: Handler = async (event, context) => {
   try {
     const path = event.path.replace('/.netlify/functions/database', '')
     const body = JSON.parse(event.body || '{}')
+
+    // Add authentication to critical endpoints
+    if (event.httpMethod === 'POST' && (path === '/mint' || path === '/burn' || body.action === 'getUserTransactions' || body.action === 'getBalance')) {
+      try {
+        const authenticatedUser = verifyJWT(event.headers.authorization || event.headers.Authorization);
+        console.log(createSecurityLog('database_authenticated_access', { 
+          userId: authenticatedUser.userId, 
+          action: path || body.action 
+        }));
+      } catch (error: any) {
+        console.log(createSecurityLog('database_auth_failed', { 
+          action: path || body.action,
+          error: error.message 
+        }, 'warning'));
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ error: GENERIC_ERRORS.UNAUTHORIZED })
+        };
+      }
+    }
 
     // Real XRPL token minting with threshold-based multi-sig
     if (event.httpMethod === 'POST' && path === '/mint') {
@@ -577,52 +601,128 @@ export const handler: Handler = async (event, context) => {
       }
 
       if (action === 'getUserTransactions') {
-        // First get user's wallet address
-        const userResult = await sql`
-          SELECT wallet_address FROM users WHERE id = ${user_id}
-        `;
-        
-        if (userResult.length === 0) {
+        try {
+          // Get transactions from transactions table (XRPL mints/burns + transfers)
+          const transactionResult = await sql`
+            SELECT 
+              id,
+              type,
+              amount,
+              xrpl_transaction_hash,
+              to_wallet,
+              from_wallet,
+              metadata,
+              created_at
+            FROM transactions 
+            WHERE to_wallet = ${user_id} OR from_wallet = ${user_id}
+            ORDER BY created_at DESC LIMIT 20
+          `;
+          
+          // Get deposits from pending_deposits table (mobile money)
+          const depositResult = await sql`
+            SELECT 
+              id,
+              amount,
+              status,
+              buyer_phone,
+              buyer_name,
+              reference,
+              created_at,
+              'deposit' as type
+            FROM pending_deposits 
+            WHERE user_id = ${user_id}
+            ORDER BY created_at DESC LIMIT 20
+          `;
+          
+          // Get user-to-user transfers - check if columns exist first
+          let transferResult: any[] = [];
+          try {
+            transferResult = await sql`
+              SELECT 
+                id,
+                amount,
+                type,
+                description,
+                reference,
+                status,
+                created_at
+              FROM transactions 
+              WHERE type = 'transfer' AND (description LIKE '%' || ${user_id} || '%')
+              ORDER BY created_at DESC LIMIT 20
+            `;
+          } catch (e) {
+            // If transfer columns don't exist, skip transfers
+            transferResult = [];
+          }
+          
+          // Combine and format all transactions
+          const allTransactions = [
+            // XRPL transactions (mints/burns + transfers)
+            ...transactionResult.map(tx => {
+              // Check if this is a transfer transaction by looking at metadata
+              let actualType = tx.type;
+              let description = `${tx.type} - ${tx.xrpl_transaction_hash ? 'XRPL' : 'Internal'}`;
+              
+              if (tx.metadata && typeof tx.metadata === 'object') {
+                const metadata = tx.metadata;
+                if (metadata.type === 'transfer_out') {
+                  actualType = 'send';
+                  description = `Sent to ${metadata.recipient_username}${metadata.note ? ` - ${metadata.note}` : ''}`;
+                } else if (metadata.type === 'transfer_in') {
+                  actualType = 'receive';
+                  description = `Received from ${metadata.sender_username}${metadata.note ? ` - ${metadata.note}` : ''}`;
+                }
+              }
+              
+              return {
+                id: tx.id.toString(),
+                type: actualType,
+                amount: parseFloat(tx.amount),
+                date: new Date(tx.created_at).toISOString(),
+                status: 'completed',
+                description: description
+              };
+            }),
+            // Mobile money deposits
+            ...depositResult.map(dep => ({
+              id: dep.id.toString(),
+              type: 'deposit',
+              amount: parseFloat(dep.amount),
+              date: new Date(dep.created_at).toISOString(),
+              status: dep.status,
+              description: `Mobile money deposit - ${dep.buyer_phone} (${dep.buyer_name})`
+            })),
+            // User transfers
+            ...transferResult.map(tx => ({
+              id: tx.id.toString(),
+              type: tx.type || 'transfer',
+              amount: parseFloat(tx.amount),
+              date: new Date(tx.created_at).toISOString(),
+              status: tx.status || 'completed',
+              description: tx.description || 'Transfer transaction'
+            }))
+          ];
+          
+          // Sort by date (newest first)
+          allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          
           return {
-            statusCode: 404,
+            statusCode: 200,
             headers,
-            body: JSON.stringify({ error: 'User not found' })
+            body: JSON.stringify({ 
+              transactions: allTransactions.slice(0, 20),
+              pendingDeposits: depositResult.filter(d => d.status === 'pending').length,
+              monthlySpending: 0
+            })
+          };
+        } catch (error: any) {
+          console.error('getUserTransactions error:', error);
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Failed to fetch transactions', details: error.message })
           };
         }
-        
-        const walletAddress = userResult[0].wallet_address;
-        
-        // Get transactions for this wallet from database
-        const result = await sql`
-          SELECT 
-            id,
-            type,
-            amount,
-            created_at,
-            'completed' as status
-          FROM transactions 
-          WHERE user_id = ${user_id}
-          ORDER BY created_at DESC LIMIT 20
-        `;
-        
-        // Format transactions for frontend
-        const formattedTransactions = result.map(tx => ({
-          id: tx.id.toString(),
-          type: tx.type,
-          amount: parseFloat(tx.amount),
-          date: new Date(tx.created_at).toLocaleDateString(),
-          status: tx.status
-        }));
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ 
-            transactions: formattedTransactions,
-            pendingDeposits: 0,
-            monthlySpending: 0
-          })
-        };
       }
     }
 

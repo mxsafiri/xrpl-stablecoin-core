@@ -101,10 +101,10 @@ export default function ModernWalletDashboard() {
           const data = await response.json()
           const formattedTransactions = (data.transactions || []).map((tx: any) => ({
             id: tx.id,
-            type: tx.type === 'credit' ? 'deposit' : 'send',
+            type: tx.type,
             amount: parseFloat(tx.amount),
-            date: new Date(tx.created_at).toLocaleDateString(),
-            status: 'completed'
+            date: new Date(tx.date).toLocaleDateString(),
+            status: tx.status || 'completed'
           }))
           setTransactions(formattedTransactions)
         }

@@ -38,10 +38,9 @@ export default function DepositModal({ isOpen, onClose, onDeposit }: DepositModa
     setIsLoading(true)
     try {
       await onDeposit(parseFloat(amount), phone)
-      setIsSuccess(true)
-      setTimeout(() => {
-        handleClose()
-      }, 2000)
+      // Don't show success immediately - wait for webhook confirmation
+      // Just close the modal and let notifications handle the feedback
+      handleClose()
     } catch (error) {
       console.error('Deposit failed:', error)
     } finally {
@@ -150,7 +149,7 @@ export default function DepositModal({ isOpen, onClose, onDeposit }: DepositModa
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0XXXXXXXXX (Vodacom, Airtel, Tigo, Halotel)"
+                  placeholder="0XXXXXXXXX"
                   pattern="^0(62|65|67|68|69|71|74|75|76|78)\d{7}$"
                   className="w-full bg-white/10 border border-white/20 rounded-[16px] px-4 py-4 text-white text-[18px] font-medium placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#2A9D9F] focus:border-transparent"
                 />
@@ -159,7 +158,7 @@ export default function DepositModal({ isOpen, onClose, onDeposit }: DepositModa
                 </span>
               </div>
               <p className="text-white/50 text-[13px] mt-3">
-                Enter your M-Pesa, Tigo Pesa, or Airtel Money number
+                Enter your mobile money number
               </p>
             </div>
 

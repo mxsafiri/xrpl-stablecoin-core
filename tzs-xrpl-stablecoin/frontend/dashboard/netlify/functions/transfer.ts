@@ -1,14 +1,13 @@
 import { Handler } from '@netlify/functions';
 import { neon } from '@neondatabase/serverless';
+import { verifyJWT, checkRateLimit, validateAmount, validateUserId, validateUsername } from './jwt-middleware';
+import { getSecureCorsHeaders, GENERIC_ERRORS, createSecurityLog } from './cors-config';
+import { checkVelocityLimits, recordTransaction, detectSuspiciousActivity } from './velocity-limits';
 
 const sql = neon(process.env.DATABASE_URL!);
 
 export const handler: Handler = async (event, context) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  };
+  const headers = getSecureCorsHeaders(event.headers.origin);
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -23,14 +22,77 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
+    // JWT Authentication - CRITICAL SECURITY FIX
+    let authenticatedUser;
+    try {
+      authenticatedUser = verifyJWT(event.headers.authorization || event.headers.Authorization);
+    } catch (error: any) {
+      console.log(createSecurityLog('transfer_auth_failed', { error: error.message }, 'warning'));
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: GENERIC_ERRORS.UNAUTHORIZED })
+      };
+    }
+
+    // Rate limiting - prevent abuse
+    const clientIP = event.headers['x-forwarded-for'] || event.headers['x-real-ip'] || 'unknown';
+    if (!checkRateLimit(`transfer_${authenticatedUser.userId}_${clientIP}`, 5, 60000)) { // 5 transfers per minute
+      return {
+        statusCode: 429,
+        headers,
+        body: JSON.stringify({ error: GENERIC_ERRORS.RATE_LIMITED })
+      };
+    }
+
     const { sender_id, recipient_username, amount, note } = JSON.parse(event.body || '{}');
 
-    if (!sender_id || !recipient_username || !amount || amount <= 0) {
+    // Input validation with security checks
+    try {
+      validateUserId(sender_id);
+      validateUsername(recipient_username);
+      validateAmount(amount);
+    } catch (error: any) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Sender ID, recipient username, and valid amount required' })
+        body: JSON.stringify({ error: 'Validation error: ' + error.message })
       };
+    }
+
+    // Ensure authenticated user matches sender
+    if (authenticatedUser.userId !== sender_id) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: GENERIC_ERRORS.FORBIDDEN })
+      };
+    }
+
+    // Check velocity limits and fraud detection
+    const velocityCheck = checkVelocityLimits(authenticatedUser.userId, amount, 'transfer');
+    if (!velocityCheck.allowed) {
+      console.log(createSecurityLog('transfer_velocity_limit', {
+        userId: authenticatedUser.userId,
+        amount,
+        reason: velocityCheck.reason
+      }, 'warning'));
+      return {
+        statusCode: 429,
+        headers,
+        body: JSON.stringify({ error: velocityCheck.reason })
+      };
+    }
+
+    // Fraud detection
+    const fraudCheck = detectSuspiciousActivity(authenticatedUser.userId, amount, 'transfer');
+    if (fraudCheck.suspicious) {
+      console.log(createSecurityLog('transfer_suspicious_activity', {
+        userId: authenticatedUser.userId,
+        amount,
+        reasons: fraudCheck.reasons
+      }, 'error'));
+      // Still allow but log for review
     }
 
     // Start transaction
@@ -88,25 +150,41 @@ export const handler: Handler = async (event, context) => {
 
       const transferId = require('crypto').randomUUID();
 
-      // Create transaction record for sender (outgoing)
+      // Create transaction record for sender (outgoing) - use existing schema
+      const senderTxId = require('crypto').randomUUID();
       await sql`
         INSERT INTO transactions (
-          id, user_id, type, amount, status, reference, created_at, description, recipient_id
+          id, xrpl_transaction_hash, type, amount, from_wallet, to_wallet, metadata, created_at, updated_at
         ) VALUES (
-          ${require('crypto').randomUUID()}, ${sender.id}, 'transfer_out', 
-          ${amount}, 'completed', ${transferId}, NOW(),
-          ${`Transfer to ${recipient.username}${note ? ` - ${note}` : ''}`}, ${recipient.id}
+          ${senderTxId}, ${`transfer_out_${senderTxId}`}, 'mint', 
+          ${amount}, ${sender.id}, ${recipient.id}, 
+          ${JSON.stringify({
+            type: 'transfer_out',
+            sender_username: sender.username,
+            recipient_username: recipient.username,
+            note: note || null,
+            reference: transferId
+          })},
+          NOW(), NOW()
         )
       `;
 
-      // Create transaction record for recipient (incoming)
+      // Create transaction record for recipient (incoming) - use existing schema
+      const recipientTxId = require('crypto').randomUUID();
       await sql`
         INSERT INTO transactions (
-          id, user_id, type, amount, status, reference, created_at, description, sender_id
+          id, xrpl_transaction_hash, type, amount, from_wallet, to_wallet, metadata, created_at, updated_at
         ) VALUES (
-          ${require('crypto').randomUUID()}, ${recipient.id}, 'transfer_in', 
-          ${amount}, 'completed', ${transferId}, NOW(),
-          ${`Transfer from ${sender.username}${note ? ` - ${note}` : ''}`}, ${sender.id}
+          ${recipientTxId}, ${`transfer_in_${recipientTxId}`}, 'mint', 
+          ${amount}, ${sender.id}, ${recipient.id}, 
+          ${JSON.stringify({
+            type: 'transfer_in',
+            sender_username: sender.username,
+            recipient_username: recipient.username,
+            note: note || null,
+            reference: transferId
+          })},
+          NOW(), NOW()
         )
       `;
 
@@ -134,10 +212,18 @@ export const handler: Handler = async (event, context) => {
         )
       `;
 
+      // Record transaction for velocity tracking
+      recordTransaction(authenticatedUser.userId, amount, 'transfer');
+
       // Commit transaction
       await sql`COMMIT`;
 
-      console.log(`Transfer completed: ${sender.username} sent ${amount} TZS to ${recipient.username}`);
+      console.log(createSecurityLog('transfer_completed', {
+        senderId: sender.id,
+        recipientId: recipient.id,
+        amount,
+        transferId
+      }));
 
       return {
         statusCode: 200,

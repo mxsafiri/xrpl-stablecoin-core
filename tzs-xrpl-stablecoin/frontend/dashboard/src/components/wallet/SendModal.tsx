@@ -24,6 +24,7 @@ export default function SendModal({ isOpen, onClose, onSend, currentBalance }: S
   const [note, setNote] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [error, setError] = useState('')
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
@@ -41,6 +42,7 @@ export default function SendModal({ isOpen, onClose, onSend, currentBalance }: S
     setNote('')
     setIsLoading(false)
     setIsSuccess(false)
+    setError('')
     setSearchResults([])
     onClose()
   }
@@ -94,14 +96,16 @@ export default function SendModal({ isOpen, onClose, onSend, currentBalance }: S
     if (!amount || parseFloat(amount) <= 0 || !recipientUser) return
     
     setIsLoading(true)
+    setError('')
     try {
       await onSend(recipientUser.username, parseFloat(amount), note)
       setIsSuccess(true)
       setTimeout(() => {
         handleClose()
       }, 2000)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Send failed:', error)
+      setError(error.message || 'Transfer failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -314,6 +318,13 @@ export default function SendModal({ isOpen, onClose, onSend, currentBalance }: S
                 rows={3}
               />
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-[16px] p-4">
+                <p className="text-red-400 text-[14px] text-center">{error}</p>
+              </div>
+            )}
 
             {/* Send Button */}
             <button
