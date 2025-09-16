@@ -16,7 +16,12 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Remove the specific stale operations from testing phase
+    // First delete related approvals, then the operations
+    await sql`
+      DELETE FROM operation_approvals 
+      WHERE operation_id IN (1, 2, 3)
+    `;
+
     const result = await sql`
       DELETE FROM pending_operations 
       WHERE id IN (1, 2, 3) 
