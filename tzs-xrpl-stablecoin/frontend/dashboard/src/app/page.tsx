@@ -33,11 +33,10 @@ export default function Dashboard() {
   if (user.role === 'admin' && activeTab === 'admin') {
     return (
       <div className="relative">
-        <div className="absolute top-4 left-4 z-30">
-          <h1 className="text-2xl font-bold text-white mb-2">TZS Admin Panel</h1>
+        <div className="absolute top-4 right-4 z-30">
           <button
             onClick={() => setActiveTab('user')}
-            className="text-white/80 hover:text-white text-sm bg-white/10 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/20 hover:bg-white/20 transition-all"
+            className="text-white/80 hover:text-white text-sm bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 hover:bg-white/20 transition-all"
           >
             ← Back to Wallet
           </button>
