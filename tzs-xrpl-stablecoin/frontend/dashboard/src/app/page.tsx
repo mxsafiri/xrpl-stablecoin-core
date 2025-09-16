@@ -32,19 +32,17 @@ export default function Dashboard() {
   // For admin users, show a simple toggle to access admin panel
   if (user.role === 'admin' && activeTab === 'admin') {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">TZS Admin Panel</h1>
-            <button
-              onClick={() => setActiveTab('user')}
-              className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
-            >
-              ← Back to Wallet
-            </button>
-          </div>
-          <AdminDashboard />
+      <div className="relative">
+        <div className="absolute top-4 left-4 z-30">
+          <h1 className="text-2xl font-bold text-white mb-2">TZS Admin Panel</h1>
+          <button
+            onClick={() => setActiveTab('user')}
+            className="text-white/80 hover:text-white text-sm bg-white/10 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/20 hover:bg-white/20 transition-all"
+          >
+            ← Back to Wallet
+          </button>
         </div>
+        <AdminDashboard />
       </div>
     )
   }
