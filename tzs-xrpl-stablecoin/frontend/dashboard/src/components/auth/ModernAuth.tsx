@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { EyeIcon, EyeSlashIcon, UserIcon, LockClosedIcon, IdentificationIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '@/contexts/AuthContext'
+import ForgotPassword from './ForgotPassword'
 
 interface AuthFormData {
   fullName: string
@@ -18,6 +19,7 @@ export default function ModernAuth() {
   const { modernLogin, modernSignup, login } = useAuth()
   const [isLogin, setIsLogin] = useState(true)
   const [showLegacyLogin, setShowLegacyLogin] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -103,6 +105,11 @@ export default function ModernAuth() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Show forgot password component
+  if (showForgotPassword) {
+    return <ForgotPassword onBack={() => setShowForgotPassword(false)} />
   }
 
   return (
@@ -391,6 +398,7 @@ export default function ModernAuth() {
               <div className="text-center">
                 <button
                   type="button"
+                  onClick={() => setShowForgotPassword(true)}
                   className="text-white/60 hover:text-white text-[14px] font-medium"
                 >
                   Forgot your password?
