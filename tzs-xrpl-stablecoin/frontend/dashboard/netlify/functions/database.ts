@@ -1,8 +1,8 @@
-import { Handler } from '@netlify/functions'
+import { Handler, HandlerResponse } from '@netlify/functions'
 import { neon } from '@neondatabase/serverless'
-import { xrplService } from './xrpl-service'
 import { getSecureCorsHeaders, GENERIC_ERRORS, createSecurityLog } from './cors-config'
 import { verifyJWT, checkRateLimit } from './jwt-middleware'
+import { xrplService } from './xrpl-service'
 
 // Fail fast if DATABASE_URL is not configured - security requirement
 if (!process.env.DATABASE_URL) {
@@ -11,7 +11,7 @@ if (!process.env.DATABASE_URL) {
 
 const sql = neon(process.env.DATABASE_URL)
 
-export const handler: Handler = async (event, context) => {
+export const handler: Handler = async (event, context): Promise<HandlerResponse> => {
   const headers = getSecureCorsHeaders(event.headers.origin)
 
   if (event.httpMethod === 'OPTIONS') {
@@ -405,34 +405,66 @@ export const handler: Handler = async (event, context) => {
         const supplyResult = await sql`SELECT SUM(CAST(balance AS DECIMAL)) as total FROM users`;
         const totalSupply = parseFloat(supplyResult[0]?.total || '0');
 
-        // Get total user balances
-        const balanceResult = await sql`SELECT SUM(CAST(balance AS DECIMAL)) as total FROM users WHERE role = 'user'`;
-        const totalBalance = parseFloat(balanceResult[0]?.total || '0');
-
-        // Get monthly volume (transactions from this month)
-        const monthlyResult = await sql`
-          SELECT SUM(CAST(amount AS DECIMAL)) as volume 
+        // Get blockchain activity stats
+        const mintResult = await sql`
+          SELECT COUNT(*) as count, COALESCE(SUM(CAST(amount AS DECIMAL)), 0) as total 
           FROM transactions 
-          WHERE created_at >= date_trunc('month', CURRENT_DATE)
+          WHERE type = 'mint' AND xrpl_transaction_hash IS NOT NULL
         `;
-        const monthlyVolume = parseFloat(monthlyResult[0]?.volume || '0');
+        const burnResult = await sql`
+          SELECT COUNT(*) as count, COALESCE(SUM(CAST(amount AS DECIMAL)), 0) as total 
+          FROM transactions 
+          WHERE type = 'burn' AND xrpl_transaction_hash IS NOT NULL
+        `;
 
-        // Get pending operations count
-        const pendingOpsResult = await sql`SELECT COUNT(*) as count FROM pending_operations WHERE status = 'pending'`;
-        const pendingOperations = parseInt(pendingOpsResult[0]?.count || '0');
+        const stats = {
+          totalUsers,
+          totalSupply,
+          totalBalance: totalSupply,
+          monthlyVolume: 0,
+          pendingOperations: 0,
+          pendingDeposits: 0,
+          blockchain: {
+            totalMints: parseInt(mintResult[0]?.count || '0'),
+            totalMintAmount: parseFloat(mintResult[0]?.total || '0'),
+            totalBurns: parseInt(burnResult[0]?.count || '0'),
+            totalBurnAmount: parseFloat(burnResult[0]?.total || '0')
+          }
+        };
 
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({
-            stats: {
-              totalUsers,
-              totalSupply,
-              totalBalance,
-              monthlyVolume,
-              pendingOperations,
-              pendingDeposits: 0 // Can be enhanced later
-            }
+          body: JSON.stringify({ stats })
+        };
+      }
+
+      if (action === 'getBlockchainActivity') {
+        const xrplTransactions = await sql`
+          SELECT 
+            xrpl_transaction_hash,
+            type,
+            amount,
+            from_wallet,
+            to_wallet,
+            created_at,
+            metadata
+          FROM transactions 
+          WHERE xrpl_transaction_hash IS NOT NULL
+          AND xrpl_transaction_hash NOT LIKE 'transfer_%'
+          ORDER BY created_at DESC
+          LIMIT 50
+        `;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            transactions: xrplTransactions.map(tx => ({
+              ...tx,
+              amount: parseFloat(tx.amount || '0'),
+              created_at: new Date(tx.created_at).toISOString()
+            }))
           })
         };
       }
@@ -442,6 +474,7 @@ export const handler: Handler = async (event, context) => {
           SELECT * FROM pending_operations 
           WHERE status = 'pending' 
           ORDER BY created_at DESC
+          LIMIT 50
         `;
         
         return {

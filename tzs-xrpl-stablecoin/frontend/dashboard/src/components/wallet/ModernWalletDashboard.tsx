@@ -152,9 +152,13 @@ export default function ModernWalletDashboard() {
   const handleDeposit = async (amount: number, phone: string) => {
     try {
       // Initiate ZenoPay mobile money deposit
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/deposit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           user_id: user?.id,
           amount: amount,
@@ -181,9 +185,13 @@ export default function ModernWalletDashboard() {
 
   const handleSend = async (recipient: string, amount: number, note?: string) => {
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/transfer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           sender_id: user?.id,
           recipient_username: recipient,
@@ -248,7 +256,7 @@ export default function ModernWalletDashboard() {
             Welcome back,<br />{user?.display_name || user?.username || 'Victor'} 👋
           </h1>
           <p className="text-white/50 text-[14px] leading-[18px] font-light">
-            Manage your money with ease.
+Tuma bure - send money free and easy.
           </p>
         </div>
 

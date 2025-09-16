@@ -45,9 +45,9 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             <Coins className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">TZS</h1>
+            <h1 className="text-xl font-bold text-gray-900">TumaBure</h1>
             <p className="text-sm text-gray-500">
-              {isAdmin ? 'Admin Panel' : 'Stablecoin'}
+              {isAdmin ? 'Admin Panel' : 'Send Money Free'}
             </p>
           </div>
         </div>

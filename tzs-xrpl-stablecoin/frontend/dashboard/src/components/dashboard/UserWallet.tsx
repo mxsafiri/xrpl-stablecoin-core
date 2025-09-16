@@ -204,7 +204,7 @@ export default function UserWallet() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Wallet className="h-5 w-5" />
-                  Your TZS Stablecoin Balance
+                  Your TumaBure Balance
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -287,10 +287,10 @@ export default function UserWallet() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Send className="h-5 w-5" />
-                Send TZS Stablecoin
+                Send Money with TumaBure
               </CardTitle>
               <CardDescription>
-                Transfer stablecoin to another wallet or make payments
+                Send money to friends and family instantly
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -395,7 +395,7 @@ export default function UserWallet() {
           Welcome, {user?.display_name || user?.username || 'User'}!
         </h1>
         <p className="text-blue-100">
-          Manage your TZS Stablecoin wallet, make deposits, and track your transactions.
+          Send money free and easy with TumaBure - your digital wallet for Tanzania.
         </p>
       </div>
 

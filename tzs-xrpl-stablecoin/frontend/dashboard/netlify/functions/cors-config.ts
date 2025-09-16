@@ -1,6 +1,8 @@
 // Centralized CORS configuration for security
 export const ALLOWED_ORIGINS = [
-  'https://nedalabs.netlify.app',
+  'https://www.tumabure.xyz',
+  'https://tumabure.xyz',
+  'https://nedalabs.netlify.app', // Legacy domain
   'https://68c3e945a7d32fdfe4ec7112--nedalabs.netlify.app', // Deploy preview URLs
   'http://localhost:3000', // Development only
   'http://localhost:3001'  // Development only

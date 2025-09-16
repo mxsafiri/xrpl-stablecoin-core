@@ -54,10 +54,12 @@ export function WithdrawPanel({ userBalance, onWithdrawSuccess }: WithdrawPanelP
         )
       };
 
+      const token = localStorage.getItem('auth_token')
       const res = await fetch('/.netlify/functions/withdraw', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload),
       });

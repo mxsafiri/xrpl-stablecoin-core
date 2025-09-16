@@ -73,10 +73,12 @@ export default function DepositPanel() {
     setIsLoading(true);
 
     try {
+      const token = localStorage.getItem('auth_token')
       const response = await fetch('/.netlify/functions/deposit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           user_id: user.id,
@@ -138,7 +140,7 @@ export default function DepositPanel() {
             Mobile Money Deposit
           </CardTitle>
           <CardDescription>
-            Deposit Tanzanian Shillings via M-Pesa, Tigo Pesa, or Airtel Money and receive TZS Stablecoin
+            Deposit Tanzanian Shillings via M-Pesa, Tigo Pesa, or Airtel Money to your TumaBure wallet
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -149,7 +151,7 @@ export default function DepositPanel() {
               <span className="font-medium text-blue-900">Exchange Rate</span>
             </div>
             <p className="text-sm text-blue-700">
-              1 TZS = 1 TZS Stablecoin (1:1 peg)
+              1 TZS = 1 TZS in your TumaBure wallet (1:1 peg)
             </p>
             <p className="text-xs text-blue-600 mt-1">
               Minimum deposit: 1,000 TZS
@@ -254,7 +256,7 @@ export default function DepositPanel() {
                 </div>
                 <p className="text-sm text-yellow-700 mt-1">
                   You will receive a mobile money prompt on {formData.buyer_phone}. 
-                  Complete the payment to receive your TZS Stablecoin.
+                  Complete the payment to receive money in your TumaBure wallet.
                 </p>
               </div>
             </div>
@@ -287,8 +289,8 @@ export default function DepositPanel() {
               <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
                 <span className="text-blue-600 font-bold">3</span>
               </div>
-              <h4 className="font-medium mb-1">Receive Stablecoin</h4>
-              <p className="text-sm text-gray-600">TZS Stablecoin credited instantly</p>
+              <h4 className="font-medium mb-1">Receive Money</h4>
+              <p className="text-sm text-gray-600">Money credited to TumaBure wallet instantly</p>
             </div>
           </div>
         </CardContent>

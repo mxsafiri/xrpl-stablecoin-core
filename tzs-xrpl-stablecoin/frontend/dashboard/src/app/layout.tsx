@@ -7,8 +7,12 @@ import { AuthProvider } from '@/contexts/AuthContext'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'TZS Stablecoin Dashboard',
-  description: 'Dashboard for managing TZS stablecoin operations on XRPL',
+  title: 'TumaBure - Send Money Free',
+  description: 'Send money across Tanzania for free using TumaBure stablecoin',
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({

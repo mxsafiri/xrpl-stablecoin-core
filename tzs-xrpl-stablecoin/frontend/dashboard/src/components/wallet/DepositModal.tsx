@@ -72,7 +72,7 @@ export default function DepositModal({ isOpen, onClose, onDeposit }: DepositModa
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-[24px] font-medium text-white tracking-tight">
-            {step === 1 ? 'Deposit TZS' : step === 2 ? 'Phone Number' : step === 3 ? 'Confirm Deposit' : 'Success!'}
+            {step === 1 ? 'Deposit Money' : step === 2 ? 'Phone Number' : step === 3 ? 'Confirm Deposit' : 'Success!'}
           </h2>
           <button
             onClick={handleClose}
@@ -250,7 +250,7 @@ export default function DepositModal({ isOpen, onClose, onDeposit }: DepositModa
             <div>
               <h3 className="text-[20px] font-medium text-white mb-2">Deposit Successful!</h3>
               <p className="text-white/70 text-[14px]">
-                TZS {parseFloat(amount).toLocaleString()} has been added to your wallet
+                TZS {parseFloat(amount).toLocaleString()} has been added to your TumaBure wallet
               </p>
             </div>
           </div>

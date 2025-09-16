@@ -119,10 +119,10 @@ export default function ModernAuth() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-[32px] font-medium text-white leading-[36px] mb-2 tracking-tight">
-            TZS Stablecoin
+            TumaBure
           </h1>
           <p className="text-white/60 text-[14px] leading-[18px] font-light">
-            {isLogin ? 'Welcome back to your wallet' : 'Create your TZS account'}
+            {isLogin ? 'Welcome back to your wallet' : 'Create your TumaBure account'}
           </p>
         </div>
 
@@ -196,7 +196,7 @@ export default function ModernAuth() {
                     />
                   </div>
                   <p className="text-white/40 text-[12px] mt-2">
-                    Your unique TZS identity (e.g., Name.TZS)
+                    Your unique TumaBure identity (e.g., Name.TZS)
                   </p>
                 </div>
 

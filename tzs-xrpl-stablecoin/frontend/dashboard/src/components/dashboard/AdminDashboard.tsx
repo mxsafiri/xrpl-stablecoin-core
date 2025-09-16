@@ -64,13 +64,9 @@ export default function AdminDashboard() {
     setIsLoading(true);
     try {
       // Load admin statistics
-      const token = localStorage.getItem('auth_token')
       const statsResponse = await fetch('/.netlify/functions/database', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getAdminStats' })
       });
 
@@ -92,10 +88,7 @@ export default function AdminDashboard() {
       // Load pending operations
       const opsResponse = await fetch('/.netlify/functions/database', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getPendingOperations' })
       });
 
@@ -132,13 +125,9 @@ export default function AdminDashboard() {
 
   const handleApproveOperation = async (operationId: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
       const response = await fetch(`/.netlify/functions/database`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'approveOperation',
           operation_id: operationId,
@@ -161,77 +150,65 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             {/* Admin Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Total Users</p>
-                      <p className="text-2xl font-bold">{adminStats.totalUsers}</p>
-                    </div>
-                    <Users className="h-8 w-8 text-blue-600" />
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-white/70">Total Users</p>
+                    <p className="text-2xl font-bold text-white">{adminStats.totalUsers}</p>
                   </div>
-                </CardContent>
-              </Card>
+                  <Users className="h-8 w-8 text-[#2A9D9F]" />
+                </div>
+              </div>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Total Supply</p>
-                      <p className="text-2xl font-bold">{formatCurrency(adminStats.totalSupply)}</p>
-                    </div>
-                    <Coins className="h-8 w-8 text-green-600" />
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-white/70">Total Supply</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(adminStats.totalSupply)}</p>
                   </div>
-                </CardContent>
-              </Card>
+                  <Coins className="h-8 w-8 text-[#2A9D9F]" />
+                </div>
+              </div>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Monthly Volume</p>
-                      <p className="text-2xl font-bold">{formatCurrency(adminStats.monthlyVolume)}</p>
-                    </div>
-                    <TrendingUp className="h-8 w-8 text-purple-600" />
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-white/70">Monthly Volume</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(adminStats.monthlyVolume)}</p>
                   </div>
-                </CardContent>
-              </Card>
+                  <TrendingUp className="h-8 w-8 text-[#2A9D9F]" />
+                </div>
+              </div>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Pending Deposits</p>
-                      <p className="text-2xl font-bold">{formatCurrency(adminStats.pendingDeposits)}</p>
-                    </div>
-                    <Clock className="h-8 w-8 text-yellow-600" />
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-white/70">Pending Deposits</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(adminStats.pendingDeposits)}</p>
                   </div>
-                </CardContent>
-              </Card>
+                  <Clock className="h-8 w-8 text-yellow-400" />
+                </div>
+              </div>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Pending Operations</p>
-                      <p className="text-2xl font-bold">{adminStats.pendingOperations}</p>
-                    </div>
-                    <AlertTriangle className="h-8 w-8 text-red-600" />
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-white/70">Pending Operations</p>
+                    <p className="text-2xl font-bold text-white">{adminStats.pendingOperations}</p>
                   </div>
-                </CardContent>
-              </Card>
+                  <AlertTriangle className="h-8 w-8 text-red-400" />
+                </div>
+              </div>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">User Balances</p>
-                      <p className="text-2xl font-bold">{formatCurrency(adminStats.totalBalance)}</p>
-                    </div>
-                    <DollarSign className="h-8 w-8 text-indigo-600" />
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-white/70">User Balances</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(adminStats.totalBalance)}</p>
                   </div>
-                </CardContent>
-              </Card>
+                  <DollarSign className="h-8 w-8 text-[#2A9D9F]" />
+                </div>
+              </div>
             </div>
 
             {/* Pending Operations Alert */}
@@ -345,44 +322,54 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Admin Header */}
-      <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white p-6 rounded-lg">
-        <div className="flex items-center gap-3 mb-2">
-          <Shield className="h-8 w-8" />
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a2332] to-[#1e3a5f] relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-white rounded-full blur-3xl"></div>
+        <div className="absolute bottom-40 right-10 w-24 h-24 bg-[#2A9D9F] rounded-full blur-2xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-[#2A9D9F] rounded-full blur-3xl"></div>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 p-6 space-y-6">
+        {/* Admin Header */}
+        <div className="bg-gradient-to-r from-[#2A9D9F] to-[#1e7a7c] text-white p-6 rounded-2xl backdrop-blur-sm border border-white/20">
+          <div className="flex items-center gap-3 mb-2">
+            <Shield className="h-8 w-8" />
+            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          </div>
+          <p className="text-white/90">
+            Treasury management, multi-signature operations, and system oversight.
+          </p>
         </div>
-        <p className="text-red-100">
-          Treasury management, multi-signature operations, and system oversight.
-        </p>
-      </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
-        {[
-          { id: 'overview', label: 'Overview', icon: TrendingUp },
-          { id: 'operations', label: 'Token Ops', icon: Coins },
-          { id: 'multisig', label: 'Multi-Sig', icon: Shield },
-          { id: 'transactions', label: 'Transactions', icon: Activity },
-          { id: 'users', label: 'Users', icon: Users }
-        ].map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setActiveTab(id as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors whitespace-nowrap ${
-              activeTab === id
-                ? 'bg-white text-red-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
+        {/* Navigation Tabs */}
+        <div className="flex space-x-1 bg-white/10 backdrop-blur-sm p-1 rounded-2xl overflow-x-auto border border-white/20">
+          {[
+            { id: 'overview', label: 'Overview', icon: TrendingUp },
+            { id: 'operations', label: 'Token Ops', icon: Coins },
+            { id: 'multisig', label: 'Multi-Sig', icon: Shield },
+            { id: 'transactions', label: 'Transactions', icon: Activity },
+            { id: 'users', label: 'Users', icon: Users }
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id as any)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors whitespace-nowrap ${
+                activeTab === id
+                  ? 'bg-[#2A9D9F] text-white shadow-sm'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
+        </div>
 
-      {/* Tab Content */}
-      {renderTabContent()}
+        {/* Tab Content */}
+        {renderTabContent()}
+      </div>
     </div>
   );
 }

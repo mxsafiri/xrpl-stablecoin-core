@@ -29,9 +29,13 @@ const clearAuth = () => {
 // Token operations via Netlify Functions with real XRPL integration
 export const tokenAPI = {
   mint: async (amount: string, destinationWallet: string, reference?: string) => {
+    const token = localStorage.getItem('auth_token')
     const response = await fetch('/.netlify/functions/database/mint', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ amount: parseFloat(amount), destinationWallet, reference })
     })
     
@@ -43,9 +47,13 @@ export const tokenAPI = {
   },
 
   burn: async (amount: string, sourceWallet: string, reference?: string) => {
+    const token = localStorage.getItem('auth_token')
     const response = await fetch('/.netlify/functions/database/burn', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ amount: parseFloat(amount), sourceWallet, reference })
     })
     
