@@ -331,14 +331,14 @@ export default function AdminDashboard() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 p-6 space-y-6">
+      <div className="relative z-10 p-6 space-y-4">
         {/* Admin Header */}
-        <div className="bg-gradient-to-r from-[#2A9D9F] to-[#1e7a7c] text-white p-6 rounded-2xl backdrop-blur-sm border border-white/20">
-          <div className="flex items-center gap-3 mb-2">
-            <Shield className="h-8 w-8" />
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        <div className="bg-gradient-to-r from-[#2A9D9F] to-[#1e7a7c] text-white p-4 rounded-2xl backdrop-blur-sm border border-white/20">
+          <div className="flex items-center gap-3 mb-1">
+            <Shield className="h-6 w-6" />
+            <h1 className="text-xl font-bold">Admin Dashboard</h1>
           </div>
-          <p className="text-white/90">
+          <p className="text-white/90 text-sm">
             Treasury management, multi-signature operations, and system oversight.
           </p>
         </div>
