@@ -28,27 +28,28 @@ export const handler: Handler = async (event, context) => {
       ORDER BY pd.created_at DESC
     `;
 
-    // Get deposit-related transactions
+    // Get deposit-related transactions (simplified query)
     const depositTransactions = await sql`
-      SELECT 
-        t.*,
-        u.username,
-        u.wallet_address
-      FROM transactions t
-      LEFT JOIN users u ON t.user_id::text = u.id::text
-      WHERE t.type = 'deposit'
-      ORDER BY t.created_at DESC
+      SELECT *
+      FROM transactions
+      WHERE type = 'deposit'
+      ORDER BY created_at DESC
     `;
 
-    // Get ZenoPay webhook logs from security events
-    const webhookLogs = await sql`
-      SELECT *
-      FROM security_events
-      WHERE event_type LIKE '%webhook%'
-      AND details->>'source' = 'zenopay'
-      ORDER BY created_at DESC
-      LIMIT 100
-    `;
+    // Get ZenoPay webhook logs from security events (handle missing table gracefully)
+    let webhookLogs: any[] = [];
+    try {
+      webhookLogs = await sql`
+        SELECT *
+        FROM security_events
+        WHERE event_type LIKE '%webhook%'
+        AND details->>'source' = 'zenopay'
+        ORDER BY created_at DESC
+        LIMIT 100
+      `;
+    } catch (error) {
+      console.log('Security events table not found, skipping webhook logs');
+    }
 
     return {
       statusCode: 200,
