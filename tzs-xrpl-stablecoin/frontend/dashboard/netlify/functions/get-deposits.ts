@@ -22,8 +22,7 @@ export const handler: Handler = async (event, context) => {
         pd.*,
         u.username,
         u.wallet_address,
-        u.email,
-        u.buyer_phone
+        u.email
       FROM pending_deposits pd
       LEFT JOIN users u ON pd.user_id::text = u.id::text
       ORDER BY pd.created_at DESC
