@@ -34,7 +34,7 @@ export const handler: Handler = async (event, context) => {
       body: JSON.stringify({ 
         success: true, 
         message: 'Stale multisig operations cleaned up',
-        deletedCount: result.count || 0
+        deletedCount: result.length || 0
       })
     };
 
