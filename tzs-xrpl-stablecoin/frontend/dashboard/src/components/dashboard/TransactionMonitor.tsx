@@ -25,11 +25,23 @@ export function TransactionMonitor() {
     try {
       setLoading(true)
       setError(null)
-      const data = await tokenAPI.getTransactions()
+      
+      // Fetch blockchain activity directly from database
+      const response = await fetch('/.netlify/functions/database', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getBlockchainActivity' })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch blockchain data')
+      }
+      
+      const data = await response.json()
       setTransactions(data.transactions || [])
     } catch (err) {
-      setError('Failed to fetch transactions')
-      console.error('Error fetching transactions:', err)
+      setError('Failed to fetch blockchain transactions')
+      console.error('Error fetching blockchain transactions:', err)
     } finally {
       setLoading(false)
     }

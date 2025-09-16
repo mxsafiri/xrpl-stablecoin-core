@@ -44,7 +44,7 @@ interface PendingOperation {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'multisig' | 'transactions' | 'users'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'multisig' | 'blockchain' | 'users'>('overview');
   const [adminStats, setAdminStats] = useState<AdminStats>({
     totalUsers: 0,
     totalBalance: 0,
@@ -283,12 +283,12 @@ export default function AdminDashboard() {
                     Multi-Sig Panel
                   </Button>
                   <Button
-                    onClick={() => setActiveTab('transactions')}
+                    onClick={() => setActiveTab('blockchain')}
                     variant="outline"
                     className="h-20 flex flex-col gap-2"
                   >
                     <Activity className="h-6 w-6" />
-                    Monitor Transactions
+                    Monitor Blockchain
                   </Button>
                   <Button
                     onClick={() => setActiveTab('users')}
@@ -310,7 +310,7 @@ export default function AdminDashboard() {
       case 'multisig':
         return <MultisigPanel />;
 
-      case 'transactions':
+      case 'blockchain':
         return <TransactionMonitor />;
 
       case 'users':
@@ -349,7 +349,7 @@ export default function AdminDashboard() {
             { id: 'overview', label: 'Overview', icon: TrendingUp },
             { id: 'operations', label: 'Token Ops', icon: Coins },
             { id: 'multisig', label: 'Multi-Sig', icon: Shield },
-            { id: 'transactions', label: 'Transactions', icon: Activity },
+            { id: 'blockchain', label: 'Blockchain', icon: Activity },
             { id: 'users', label: 'Users', icon: Users }
           ].map(({ id, label, icon: Icon }) => (
             <button
