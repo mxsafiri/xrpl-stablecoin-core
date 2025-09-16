@@ -35,7 +35,7 @@ export const handler: Handler = async (event, context) => {
         u.username,
         u.wallet_address
       FROM transactions t
-      LEFT JOIN users u ON t.user_id = u.id
+      LEFT JOIN users u ON t.user_id::text = u.id::text
       WHERE t.type = 'deposit'
       ORDER BY t.created_at DESC
     `;
