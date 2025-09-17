@@ -27,14 +27,18 @@ export const handler: Handler = async (event, context) => {
     console.log('ZenoPay Webhook Debug:', JSON.stringify(debugInfo, null, 2));
 
     // Store debug info in database for review
-    await sql`
-      INSERT INTO audit_logs (
-        id, user_id, action, details, created_at
-      ) VALUES (
-        ${crypto.randomUUID()}, 'system', 'webhook_debug',
-        ${JSON.stringify(debugInfo)}, NOW()
-      )
-    `;
+    try {
+      await sql`
+        INSERT INTO audit_logs (
+          id, action, details, created_at
+        ) VALUES (
+          ${crypto.randomUUID()}, 'webhook_debug',
+          ${JSON.stringify(debugInfo)}, NOW()
+        )
+      `;
+    } catch (auditError) {
+      console.log('Audit log failed, continuing without logging:', auditError);
+    }
 
     if (event.httpMethod === 'POST' && event.body) {
       try {
