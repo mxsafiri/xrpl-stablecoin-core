@@ -561,6 +561,49 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
         }
       }
 
+      if (action === 'manualCreditDeposit') {
+        const { user_id, amount, deposit_id, reference } = body;
+        
+        try {
+          // Update user balance
+          await sql`
+            UPDATE users 
+            SET balance = balance + ${amount}, updated_at = NOW()
+            WHERE id = ${user_id}
+          `;
+          
+          // Mark deposit as completed
+          await sql`
+            UPDATE pending_deposits 
+            SET status = 'completed', updated_at = NOW()
+            WHERE id = ${deposit_id}
+          `;
+          
+          // Record transaction
+          await sql`
+            INSERT INTO transactions (user_id, type, amount, reference, created_at)
+            VALUES (${user_id}, 'deposit', ${amount}, ${reference || 'Manual credit'}, NOW())
+          `;
+          
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ 
+              success: true, 
+              message: 'Deposit credited successfully',
+              amount: amount
+            })
+          };
+        } catch (error: any) {
+          console.error('Manual credit error:', error);
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Failed to credit deposit' })
+          };
+        }
+      }
+
       if (action === 'updateUserRole') {
         const { user_id, new_role } = body;
         
