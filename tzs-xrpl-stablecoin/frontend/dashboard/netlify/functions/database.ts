@@ -508,6 +508,29 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
         };
       }
 
+      if (action === 'getUserDeposits') {
+        const { user_id } = body;
+        const result = await sql`
+          SELECT 
+            id,
+            amount,
+            status,
+            buyer_phone,
+            buyer_name,
+            reference,
+            created_at
+          FROM pending_deposits 
+          WHERE user_id = ${user_id}
+          ORDER BY created_at DESC
+        `;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ deposits: result })
+        };
+      }
+
       if (action === 'updateUserRole') {
         const { user_id, new_role } = body;
         
