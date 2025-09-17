@@ -224,18 +224,20 @@ export const handler: Handler = async (event, context) => {
       WHERE id = ${deposit.user_id}
     `;
 
-    // Mint actual XRPL tokens for the deposit
+    // Mint actual XRPL tokens for the deposit using local database function
     let tokenMintResult = null;
     try {
       console.log(`Attempting to mint ${stablecoinAmount} TZS tokens for user ${user.wallet_address}`);
       
-      const mintResponse = await fetch('https://nedalabs.netlify.app/.netlify/functions/mint-tokens', {
+      // Use local database function for minting instead of external service
+      const mintResponse = await fetch(`${process.env.URL || 'https://www.tumabure.xyz'}/.netlify/functions/database`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'mintTokens',
           amount: stablecoinAmount,
           destinationWallet: user.wallet_address,
-          reference: `deposit-${order_id}`,
+          reference: `deposit_${order_id}`,
           requestedBy: 'zenopay-webhook'
         })
       });

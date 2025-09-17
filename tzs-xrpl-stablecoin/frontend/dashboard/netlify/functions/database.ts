@@ -367,7 +367,7 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
 
     // Handle POST requests with actions
     if (event.httpMethod === 'POST') {
-      const { action, wallet_address, user_id } = body;
+      const { action, wallet_address, user_id, amount, destinationWallet, reference, requestedBy } = body;
 
       if (action === 'getUserBalance') {
         const result = await sql`
@@ -602,6 +602,66 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
           headers,
           body: JSON.stringify({ success: true })
         };
+      }
+
+      if (action === 'mintTokens') {
+        try {
+          // Calculate USD value (1 USD = ~2600 TZS)
+          const usdValue = amount / 2600
+          
+          // Get multi-sig threshold from settings
+          const thresholdResult = await sql`
+            SELECT setting_value FROM system_settings WHERE setting_key = 'multisig_threshold_usd'
+          `
+          const threshold = parseFloat(thresholdResult[0]?.setting_value || '5000')
+          
+          // Check if operation requires multi-sig approval
+          if (usdValue >= threshold) {
+            // Create pending operation
+            const pendingOp = await sql`
+              INSERT INTO pending_operations (
+                operation_type, amount, usd_value, destination_wallet, 
+                reference, requested_by, required_approvals
+              )
+              VALUES ('mint', ${amount}, ${usdValue}, ${destinationWallet}, 
+                      ${reference}, ${requestedBy}, 2)
+              RETURNING id
+            `
+            
+            return {
+              statusCode: 200,
+              headers,
+              body: JSON.stringify({ 
+                success: true, 
+                requiresApproval: true,
+                operationId: pendingOp[0].id,
+                message: `Operation requires approval (${usdValue} USD >= ${threshold} USD threshold)`
+              })
+            }
+          } else {
+            // Execute immediately for amounts below threshold
+            const txHash = await xrplService.mintTokens(destinationWallet, amount, reference)
+            
+            // Record in database
+            await sql`
+              INSERT INTO transactions (xrpl_transaction_hash, type, to_wallet, amount, created_at)
+              VALUES (${txHash}, 'mint', ${destinationWallet}, ${amount}, NOW())
+            `
+            
+            return {
+              statusCode: 200,
+              headers,
+              body: JSON.stringify({ success: true, txHash, amount, destinationWallet })
+            }
+          }
+        } catch (error) {
+          console.error('Mint error:', error)
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Failed to mint tokens' })
+          }
+        }
       }
 
       if (action === 'updateBalance') {
