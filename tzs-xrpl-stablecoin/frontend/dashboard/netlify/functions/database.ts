@@ -548,7 +548,7 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
             body: JSON.stringify({ 
               success: true, 
               message: 'Fixed pending deposits user_id references',
-              updatedRows: updateResult.count || 0
+              updatedRows: updateResult.length || 0
             })
           };
         } catch (error: any) {
