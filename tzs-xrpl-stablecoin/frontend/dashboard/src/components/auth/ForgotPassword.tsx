@@ -50,7 +50,7 @@ export default function ForgotPassword({ onBack }: ForgotPasswordProps) {
             </div>
             <h2 className="text-white text-xl font-semibold mb-2">Check Your Email</h2>
             <p className="text-white/70 text-sm">
-              If an account with that email exists, we've sent you a password reset link.
+              If an account with that email exists, we&apos;ve sent you a password reset link.
             </p>
           </div>
           <div className="p-6 pt-0">
@@ -76,7 +76,7 @@ export default function ForgotPassword({ onBack }: ForgotPasswordProps) {
           </div>
           <h2 className="text-white text-xl font-semibold mb-2">Forgot Password?</h2>
           <p className="text-white/70 text-sm">
-            Enter your email address and we'll send you a link to reset your password.
+            Enter your email address and we&apos;ll send you a link to reset your password.
           </p>
         </div>
         <div className="p-6 pt-0">

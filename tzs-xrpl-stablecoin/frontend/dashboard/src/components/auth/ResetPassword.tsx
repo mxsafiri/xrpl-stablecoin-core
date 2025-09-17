@@ -18,16 +18,6 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [userData, setUserData] = useState<any>(null);
 
-  useEffect(() => {
-    if (!token) {
-      setError('Invalid reset link');
-      setIsVerifying(false);
-      return;
-    }
-
-    verifyToken();
-  }, [token]);
-
   const verifyToken = async () => {
     try {
       const response = await fetch('/.netlify/functions/password-reset/verify', {
@@ -49,6 +39,16 @@ export default function ResetPassword() {
       setIsVerifying(false);
     }
   };
+
+  useEffect(() => {
+    if (!token) {
+      setError('Invalid reset link');
+      setIsVerifying(false);
+      return;
+    }
+
+    verifyToken();
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
