@@ -20,10 +20,10 @@ export default function ResetPassword() {
 
   const verifyToken = async () => {
     try {
-      const response = await fetch('/.netlify/functions/password-reset/verify', {
+      const response = await fetch('/api/password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
+        body: JSON.stringify({ action: 'verify', token })
       });
 
       const data = await response.json();
@@ -67,10 +67,10 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/.netlify/functions/password-reset/reset', {
+      const response = await fetch('/api/password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, newPassword })
+        body: JSON.stringify({ action: 'reset', token, password: newPassword })
       });
 
       const data = await response.json();

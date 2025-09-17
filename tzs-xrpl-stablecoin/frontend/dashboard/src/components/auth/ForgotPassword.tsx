@@ -20,10 +20,10 @@ export default function ForgotPassword({ onBack }: ForgotPasswordProps) {
     setError('');
 
     try {
-      const response = await fetch('/.netlify/functions/password-reset/request', {
+      const response = await fetch('/api/password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ action: 'request', email })
       });
 
       const data = await response.json();

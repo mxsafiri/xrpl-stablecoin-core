@@ -23,7 +23,7 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
     const body = JSON.parse(event.body || '{}')
 
     // Add authentication to critical endpoints
-    if (event.httpMethod === 'POST' && (path === '/mint' || path === '/burn' || body.action === 'getUserTransactions' || body.action === 'getBalance')) {
+    if (event.httpMethod === 'POST' && (path === '/mint' || path === '/burn' || body.action === 'getBalance')) {
       try {
         const authenticatedUser = verifyJWT(event.headers.authorization || event.headers.Authorization);
         console.log(createSecurityLog('database_authenticated_access', { 
@@ -647,7 +647,7 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
               metadata,
               created_at
             FROM transactions 
-            WHERE to_wallet = ${user_id} OR from_wallet = ${user_id}
+            WHERE to_wallet = ${user_id} OR from_wallet = ${user_id} OR user_id = ${user_id}
             ORDER BY created_at DESC LIMIT 20
           `;
           
