@@ -125,13 +125,47 @@ export default function ModernAuth() {
       <div className="relative z-10 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-[32px] font-medium text-white leading-[36px] mb-2 tracking-tight">
+          <h1 className="text-[32px] font-medium text-white leading-[36px] mb-2 tracking-tight animate-fade-in">
             TumaBure
           </h1>
-          <p className="text-white/60 text-[14px] leading-[18px] font-light">
+          <p className="text-white/60 text-[14px] leading-[18px] font-light animate-fade-in-delay">
             {isLogin ? 'Welcome back to your wallet' : 'Create your TumaBure account'}
           </p>
         </div>
+
+        <style jsx>{`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(-10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          @keyframes gentlePulse {
+            0%, 100% {
+              transform: scale(1);
+            }
+            50% {
+              transform: scale(1.02);
+            }
+          }
+
+          .animate-fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+          }
+
+          .animate-fade-in-delay {
+            animation: fadeIn 0.8s ease-out 0.2s both;
+          }
+
+          h1:hover {
+            animation: gentlePulse 2s ease-in-out infinite;
+          }
+        `}</style>
 
         {/* Auth Form */}
         <div className="backdrop-blur-2xl bg-white/[0.15] rounded-[32px] p-8 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] border border-white/[0.18]">

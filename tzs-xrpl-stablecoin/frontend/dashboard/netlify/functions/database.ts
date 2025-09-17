@@ -370,16 +370,28 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
       const { action, wallet_address, user_id, amount, destinationWallet, reference, requestedBy } = body;
 
       if (action === 'getUserBalance') {
-        const result = await sql`
-          SELECT balance FROM users WHERE wallet_address = ${wallet_address}
-        `;
+        // Support both wallet_address and user_id lookup
+        let result;
+        if (user_id) {
+          result = await sql`
+            SELECT balance FROM users WHERE id = ${user_id}::uuid
+          `;
+        } else if (wallet_address) {
+          result = await sql`
+            SELECT balance FROM users WHERE wallet_address = ${wallet_address}
+          `;
+        } else {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Either user_id or wallet_address required' })
+          };
+        }
+        
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ 
-            balance: result[0]?.balance || '0',
-            wallet_address 
-          })
+          body: JSON.stringify({ balance: result[0]?.balance || '0' })
         };
       }
 
@@ -531,15 +543,14 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
         };
       }
 
-      if (action === 'fixPendingDepositsUserIds') {
+      if (action === 'fixDicksonBalance') {
         try {
-          // Update pending_deposits to use proper user UUIDs instead of wallet addresses
-          const updateResult = await sql`
-            UPDATE pending_deposits 
-            SET user_id = u.id 
-            FROM users u 
-            WHERE pending_deposits.user_id = u.wallet_address
-            AND pending_deposits.user_id != u.id::text
+          // Reset DICKSON's balance to correct amount (10,000 TZS)
+          const balanceReset = await sql`
+            UPDATE users 
+            SET balance = 10000, updated_at = NOW()
+            WHERE id = '8531d843-306b-43f3-94d0-0624761c2198'::uuid
+            RETURNING balance, username
           `;
           
           return {
@@ -547,16 +558,17 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
             headers,
             body: JSON.stringify({ 
               success: true, 
-              message: 'Fixed pending deposits user_id references',
-              updatedRows: updateResult.length || 0
+              message: 'Balance corrected to 10,000 TZS',
+              user: balanceReset[0]?.username,
+              newBalance: balanceReset[0]?.balance
             })
           };
         } catch (error: any) {
-          console.error('Fix pending deposits error:', error);
+          console.error('Balance fix error:', error);
           return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Failed to fix pending deposits' })
+            body: JSON.stringify({ error: 'Failed to fix balance' })
           };
         }
       }
@@ -565,12 +577,33 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
         const { user_id, amount, deposit_id, reference } = body;
         
         try {
-          // Update user balance
-          await sql`
+          // Check if deposit is already completed to prevent duplicate credits
+          const depositCheck = await sql`
+            SELECT status FROM pending_deposits WHERE id = ${deposit_id}
+          `;
+          
+          if (depositCheck[0]?.status === 'completed') {
+            return {
+              statusCode: 400,
+              headers,
+              body: JSON.stringify({ 
+                error: 'Deposit already completed',
+                message: 'This deposit has already been processed'
+              })
+            };
+          }
+          
+          // Update user balance (ensure UUID format)
+          const balanceUpdate = await sql`
             UPDATE users 
             SET balance = balance + ${amount}, updated_at = NOW()
-            WHERE id = ${user_id}
+            WHERE id = ${user_id}::uuid
+            RETURNING balance
           `;
+          
+          if (balanceUpdate.length === 0) {
+            throw new Error(`User not found: ${user_id}`);
+          }
           
           // Mark deposit as completed
           await sql`
@@ -579,11 +612,16 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
             WHERE id = ${deposit_id}
           `;
           
-          // Record transaction
-          await sql`
-            INSERT INTO transactions (user_id, type, amount, reference, created_at)
-            VALUES (${user_id}, 'deposit', ${amount}, ${reference || 'Manual credit'}, NOW())
-          `;
+          // Record transaction (check if transactions table exists)
+          try {
+            await sql`
+              INSERT INTO transactions (user_id, type, amount, reference, created_at)
+              VALUES (${user_id}, 'deposit', ${amount}, ${reference || 'Manual credit'}, NOW())
+            `;
+          } catch (txError: any) {
+            console.log('Transaction insert failed, continuing without it:', txError.message);
+            // Continue without transaction record if table doesn't exist
+          }
           
           return {
             statusCode: 200,
@@ -591,7 +629,8 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
             body: JSON.stringify({ 
               success: true, 
               message: 'Deposit credited successfully',
-              amount: amount
+              amount: amount,
+              newBalance: balanceUpdate[0]?.balance || 'unknown'
             })
           };
         } catch (error: any) {
