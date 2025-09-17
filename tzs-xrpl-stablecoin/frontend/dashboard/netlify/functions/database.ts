@@ -840,9 +840,6 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
               to_wallet,
               from_wallet,
               metadata,
-              reference,
-              description,
-              status,
               created_at
             FROM transactions 
             WHERE to_wallet = ${user_id} OR from_wallet = ${user_id}
@@ -895,7 +892,7 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
             ...transactionResult.map(tx => {
               // Check if this is a transfer transaction by looking at metadata
               let actualType = tx.type;
-              let description = tx.description || `${tx.type} - ${tx.xrpl_transaction_hash ? 'XRPL' : 'Internal'}`;
+              let description = `${tx.type} - ${tx.xrpl_transaction_hash ? 'XRPL' : 'Internal'}`;
               
               if (tx.metadata && typeof tx.metadata === 'object') {
                 const metadata = tx.metadata;
@@ -913,9 +910,8 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
                 type: actualType,
                 amount: parseFloat(tx.amount),
                 date: new Date(tx.created_at).toISOString(),
-                status: tx.status || 'completed',
+                status: 'completed',
                 description: description,
-                reference: tx.reference,
                 xrpl_hash: tx.xrpl_transaction_hash,
                 to_wallet: tx.to_wallet,
                 from_wallet: tx.from_wallet
