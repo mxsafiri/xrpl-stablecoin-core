@@ -840,6 +840,9 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
               to_wallet,
               from_wallet,
               metadata,
+              reference,
+              description,
+              status,
               created_at
             FROM transactions 
             WHERE to_wallet = ${user_id} OR from_wallet = ${user_id}
@@ -855,7 +858,10 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
               buyer_phone,
               buyer_name,
               reference,
+              order_id,
+              buyer_email,
               created_at,
+              updated_at,
               'deposit' as type
             FROM pending_deposits 
             WHERE user_id = ${user_id}
@@ -889,7 +895,7 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
             ...transactionResult.map(tx => {
               // Check if this is a transfer transaction by looking at metadata
               let actualType = tx.type;
-              let description = `${tx.type} - ${tx.xrpl_transaction_hash ? 'XRPL' : 'Internal'}`;
+              let description = tx.description || `${tx.type} - ${tx.xrpl_transaction_hash ? 'XRPL' : 'Internal'}`;
               
               if (tx.metadata && typeof tx.metadata === 'object') {
                 const metadata = tx.metadata;
@@ -907,8 +913,12 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
                 type: actualType,
                 amount: parseFloat(tx.amount),
                 date: new Date(tx.created_at).toISOString(),
-                status: 'completed',
-                description: description
+                status: tx.status || 'completed',
+                description: description,
+                reference: tx.reference,
+                xrpl_hash: tx.xrpl_transaction_hash,
+                to_wallet: tx.to_wallet,
+                from_wallet: tx.from_wallet
               };
             }),
             // Mobile money deposits
@@ -918,7 +928,13 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
               amount: parseFloat(dep.amount),
               date: new Date(dep.created_at).toISOString(),
               status: dep.status,
-              description: `Mobile money deposit - ${dep.buyer_phone} (${dep.buyer_name})`
+              description: `Mobile money deposit - ${dep.buyer_phone} (${dep.buyer_name})`,
+              reference: dep.reference,
+              order_id: dep.order_id,
+              buyer_email: dep.buyer_email,
+              buyer_phone: dep.buyer_phone,
+              buyer_name: dep.buyer_name,
+              updated_at: dep.updated_at ? new Date(dep.updated_at).toISOString() : null
             })),
             // User transfers
             ...transferResult.map(tx => ({
