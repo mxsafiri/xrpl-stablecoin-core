@@ -842,7 +842,7 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
               metadata,
               created_at
             FROM transactions 
-            WHERE to_wallet = ${user_id} OR from_wallet = ${user_id} OR user_id = ${user_id}
+            WHERE to_wallet = ${user_id} OR from_wallet = ${user_id}
             ORDER BY created_at DESC LIMIT 20
           `;
           
