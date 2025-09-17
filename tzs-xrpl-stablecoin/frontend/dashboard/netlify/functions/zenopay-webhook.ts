@@ -163,20 +163,20 @@ export const handler: Handler = async (event, context) => {
       };
     }
 
-    // Find the pending deposit by order_id (handle user_id as text)
+    // Find the pending deposit by order_id (handle both UUID and wallet address formats)
     const depositResult = await sql`
-      SELECT pd.*, u.id as user_id, u.username, u.balance
+      SELECT pd.*, u.id as user_id, u.username, u.balance, u.wallet_address
       FROM pending_deposits pd
-      LEFT JOIN users u ON pd.user_id::text = u.id::text
+      LEFT JOIN users u ON (pd.user_id::text = u.id::text OR pd.user_id = u.wallet_address)
       WHERE pd.order_id = ${order_id} AND pd.status = 'pending'
     `;
 
     // If no user found, try to find by email/phone and credit the most recent user
     if (depositResult.length === 0 || !depositResult[0].user_id) {
       const fallbackResult = await sql`
-        SELECT pd.*, u.id as user_id, u.username, u.balance
+        SELECT pd.*, u.id as user_id, u.username, u.balance, u.wallet_address
         FROM pending_deposits pd
-        CROSS JOIN (SELECT id, username, balance FROM users ORDER BY created_at DESC LIMIT 1) u
+        CROSS JOIN (SELECT id, username, balance, wallet_address FROM users ORDER BY created_at DESC LIMIT 1) u
         WHERE pd.order_id = ${order_id} AND pd.status = 'pending'
       `;
       

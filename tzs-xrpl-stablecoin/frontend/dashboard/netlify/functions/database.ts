@@ -531,6 +531,36 @@ export const handler: Handler = async (event, context): Promise<HandlerResponse>
         };
       }
 
+      if (action === 'fixPendingDepositsUserIds') {
+        try {
+          // Update pending_deposits to use proper user UUIDs instead of wallet addresses
+          const updateResult = await sql`
+            UPDATE pending_deposits 
+            SET user_id = u.id 
+            FROM users u 
+            WHERE pending_deposits.user_id = u.wallet_address
+            AND pending_deposits.user_id != u.id::text
+          `;
+          
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ 
+              success: true, 
+              message: 'Fixed pending deposits user_id references',
+              updatedRows: updateResult.count || 0
+            })
+          };
+        } catch (error: any) {
+          console.error('Fix pending deposits error:', error);
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ error: 'Failed to fix pending deposits' })
+          };
+        }
+      }
+
       if (action === 'updateUserRole') {
         const { user_id, new_role } = body;
         
